@@ -67,7 +67,6 @@ DEFAULT_STATE: dict[str, Any] = {
         "writer": "main-agent-only",
         "lock_file": ".bug-hunter/.lock",
         "subagent_write_roots": [
-            "runs/*/captures",
             "runs/*/captures/shard-*",
             "runs/*/findings/raw",
         ],

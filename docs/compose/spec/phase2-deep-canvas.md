@@ -50,7 +50,7 @@ Phase 0/1 已覆盖 code 通道、多 viewport 采集、layout-geom 全规则、
 
 #### 1.1 Flow 文件契约
 
-路径：默认 `<root>/.bug-hunter/flows/*.json`，或 CLI `--flows DIR`。
+路径：默认 `<root>/.bug-hunter/flows/*.json`（运行时）或项目内非忽略路径；验收 demo 使用 `examples/acceptance-demo/flows/`（不被 `.bug-hunter/` ignore 覆盖）。CLI：`--flows DIR`。
 
 ```json
 {
@@ -246,7 +246,7 @@ L4 探测：state 同时满足 web 可开页 + canvas items 有效 source 存在
 |------|--------------|------|
 | 死链 `<a href="#">` | `dead-link` | `/` |
 | 有 submit 无 error sink | `missing-feedback` | `/` |
-| flow：empty submit 期望 errorBanner，实际无 | `ux-flow-step` | `flows/empty-submit.json` |
+| flow：empty submit 期望 errorBanner，实际无 | `ux-flow-step` | `examples/acceptance-demo/flows/empty-submit.json` |
 | canvas 安全区：标题 y=2 且 inset 5% → 越界 | `safe-area-violation` | `canvas/poster.scene.json` |
 | canvas 导出 800x600 vs 目标 1080x1920 | `export-mismatch` | 同上 + demo state |
 | asset display 200px / pixel 80px | `low-res-asset` | 同上 |

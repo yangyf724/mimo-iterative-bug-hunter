@@ -98,7 +98,8 @@ def load_items_from_path(path: Path) -> list[dict[str, Any]]:
     """Load canvas items from a JSON file or directory of *.scene.json / canvas-*.json."""
     items: list[dict[str, Any]] = []
     if path.is_dir():
-        for child in sorted(path.glob("*.scene.json")) + sorted(path.glob("canvas-*.json")):
+        candidates = list(path.glob("*.scene.json")) + list(path.glob("canvas-*.json"))
+        for child in sorted(set(candidates)):
             with child.open("r", encoding="utf-8-sig") as f:
                 data = json.load(f)
             if isinstance(data, list):
@@ -136,6 +137,38 @@ def _object_bbox(obj: dict[str, Any]) -> dict[str, float]:
         "w": float(obj.get("w") or obj.get("width") or 0),
         "h": float(obj.get("h") or obj.get("height") or 0),
     }
+
+
+def _rect_union_area(rects: list[dict[str, float]]) -> float:
+    """Exact area of union of axis-aligned rects via coordinate compression."""
+    if not rects:
+        return 0.0
+    xs = sorted({r["x1"] for r in rects} | {r["x2"] for r in rects})
+    ys = sorted({r["y1"] for r in rects} | {r["y2"] for r in rects})
+    total = 0.0
+    for i in range(len(xs) - 1):
+        x1, x2 = xs[i], xs[i + 1]
+        if x2 <= x1:
+            continue
+        # y-intervals covered in this vertical strip
+        intervals: list[tuple[float, float]] = []
+        for r in rects:
+            if r["x1"] <= x1 and r["x2"] >= x2:
+                intervals.append((r["y1"], r["y2"]))
+        if not intervals:
+            continue
+        intervals.sort()
+        merged_y = 0.0
+        cur_a, cur_b = intervals[0]
+        for a, b in intervals[1:]:
+            if a <= cur_b:
+                cur_b = max(cur_b, b)
+            else:
+                merged_y += cur_b - cur_a
+                cur_a, cur_b = a, b
+        merged_y += cur_b - cur_a
+        total += (x2 - x1) * merged_y
+    return total
 
 
 def check_safe_area(
@@ -265,16 +298,22 @@ def check_z_order_occlusion(
     for i, (obj, bbox, z, otype) in enumerate(normalized):
         if otype not in ("text", "cta", "button", "label"):
             continue
-        covered = 0.0
         area = bbox["w"] * bbox["h"]
         if area <= 0:
             continue
-        for j, (other, ob, oz, _otype) in enumerate(normalized):
+        # Union of occluder∩target regions (do not sum pairwise overlaps).
+        # Grid-based union on the target bbox for exact-enough coverage.
+        occluders: list[dict[str, float]] = []
+        for j, (_other, ob, oz, _otype) in enumerate(normalized):
             if i == j or oz <= z:
                 continue
-            ix = max(0.0, min(bbox["x"] + bbox["w"], ob["x"] + ob["w"]) - max(bbox["x"], ob["x"]))
-            iy = max(0.0, min(bbox["y"] + bbox["h"], ob["y"] + ob["h"]) - max(bbox["y"], ob["y"]))
-            covered += ix * iy
+            ox1 = max(bbox["x"], ob["x"])
+            oy1 = max(bbox["y"], ob["y"])
+            ox2 = min(bbox["x"] + bbox["w"], ob["x"] + ob["w"])
+            oy2 = min(bbox["y"] + bbox["h"], ob["y"] + ob["h"])
+            if ox2 > ox1 and oy2 > oy1:
+                occluders.append({"x1": ox1, "y1": oy1, "x2": ox2, "y2": oy2})
+        covered = _rect_union_area(occluders)
         ratio = min(1.0, covered / area)
         if ratio < min_coverage:
             continue

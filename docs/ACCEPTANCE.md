@@ -58,8 +58,8 @@ npm start
 | 4 | vlm-audit | 双视角一致合并；不一致丢弃；与 raw 交叉不双计 | **PASS** — TestVlmAudit |
 | 5 | subagent 分片 | `--shard` 划分稳定；`merge` 合并 MANIFEST 并复制制品 | **PASS** — TestCaptureShard |
 | 6 | hunt_round 集成 | fixtures 同时产出 layout + ux + canvas；L3→L4 `degrade_elevated_by` | **PASS** — TestHuntRoundPhase2 |
-| 7 | demo 注入 | 死链、无反馈 submit、空列表、canvas 场景、flows 文件存在 | **PASS** — demo 文件 + scene 单测 |
-| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 85 tests OK |
+| 7 | demo 注入 | 死链、无反馈 submit、空列表、canvas 场景、flows 在非 ignore 路径 | **PASS** — `index.html` + `canvas/poster.scene.json` + `flows/empty-submit.json` |
+| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 88 tests OK（含 stub-canvas 不升 L4、z-order 并集） |
 
 ## 本地验收脚本（agent 执行）
 

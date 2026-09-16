@@ -246,9 +246,8 @@ def run_hunt_round(
         if degrade in ("L0", "L1"):
             degrade = "L2"
         # Phase 2: static ux rules (+ optional symbolic flows) whenever cells exist.
-        # Strategy id `ux-flow` is L4-gated for quiet coverage, but static rules are
-        # still valuable at L2/L3 — run them and credit the id only when L4 allows
-        # or when flows were explicitly supplied.
+        # L4 always credits ux-flow; L2/L3 credit when flows were supplied or findings exist
+        # (converge_check still withholds quiet credit for L4-only ids below L4).
         ux_result = ux_flow.run_ux_on_manifest(
             manifest_path=manifest_path,
             flows_dir=flows,
@@ -256,6 +255,12 @@ def run_hunt_round(
         )
         ux_findings = ux_result.get("findings") or []
         findings.extend(ux_findings)
+        # Persist raw ux findings so vlm_audit cross-check can corroborate them
+        if ux_findings:
+            save_json(
+                captures_dir.parent / "findings" / "raw" / "ux-flow__manifest.json",
+                {"findings": ux_findings, "flows": ux_result.get("flows")},
+            )
         if (
             cc.degrade_allows_strategy(degrade, "ux-flow")
             or flows is not None
@@ -270,8 +275,13 @@ def run_hunt_round(
     raw_canvas_items = canvas_cfg.get("items") or []
     canvas_findings: list[dict[str, Any]] = []
     canvas_scanned = False
+    canvas_unavailable: list[dict[str, Any]] = []
+
+    def _item_is_scannable(item: dict[str, Any]) -> bool:
+        """True only when the item has real geometry/assets to probe."""
+        return bool(item.get("objects") or item.get("assets"))
+
     if canvas_items_path is None and raw_canvas_items:
-        # Prefer explicit --canvas-items; else load from state sources
         loaded: list[dict[str, Any]] = []
         for item in raw_canvas_items:
             if not isinstance(item, dict):
@@ -291,27 +301,51 @@ def run_hunt_round(
                             or canvas_cfg.get("export_target")
                             or merged.get("export_target")
                         )
-                        loaded.append(merged)
+                        if _item_is_scannable(merged):
+                            loaded.append(merged)
+                        else:
+                            canvas_unavailable.append(
+                                {"canvas_id": merged.get("id"), "reason": "source-has-no-objects-or-assets"}
+                            )
                         continue
-            loaded.append(canvas_probe.normalize_item(item))
-        if loaded:
+                canvas_unavailable.append(
+                    {"canvas_id": item.get("id"), "reason": "source-missing", "source": str(src)}
+                )
+                continue
+            # Inline objects/assets without source
+            normalized = canvas_probe.normalize_item(item)
+            if _item_is_scannable(normalized):
+                loaded.append(normalized)
+            else:
+                canvas_unavailable.append(
+                    {"canvas_id": normalized.get("id"), "reason": "no-objects-or-assets"}
+                )
+        # Only credit canvas scan when at least one item is actually probeable
+        scannable = [i for i in loaded if _item_is_scannable(i)]
+        if scannable:
             canvas_scanned = True
             if "canvas" not in modalities:
                 modalities = list(modalities) + ["canvas"]
             canvas_result = canvas_probe.run_canvas_items(
-                loaded,
+                scannable,
                 export_target=canvas_cfg.get("export_target"),
                 oracle=oracle,
             )
             canvas_findings = canvas_result.get("findings") or []
     elif canvas_items_path is not None:
         items = canvas_probe.load_items_from_path(Path(canvas_items_path))
-        if items:
+        scannable = [i for i in items if _item_is_scannable(i)]
+        for i in items:
+            if not _item_is_scannable(i):
+                canvas_unavailable.append(
+                    {"canvas_id": i.get("id"), "reason": "no-objects-or-assets"}
+                )
+        if scannable:
             canvas_scanned = True
             if "canvas" not in modalities:
                 modalities = list(modalities) + ["canvas"]
             canvas_result = canvas_probe.run_canvas_items(
-                items,
+                scannable,
                 export_target=canvas_cfg.get("export_target"),
                 oracle=oracle,
             )
@@ -320,7 +354,12 @@ def run_hunt_round(
     canvas_elevated = None
     if canvas_scanned:
         findings.extend(canvas_findings)
-        # L4 = L3 + canvas. Elevate only from L3 when canvas items were scanned.
+        if canvas_findings:
+            save_json(
+                root / ".bug-hunter" / "runs" / run_id / "findings" / "raw" / "canvas__items.json",
+                {"findings": canvas_findings, "unavailable": canvas_unavailable},
+            )
+        # L4 = L3 + canvas. Elevate only when at least one item was actually probed.
         if degrade == "L3":
             degrade = "L4"
             canvas_elevated = "canvas-items"
@@ -328,6 +367,11 @@ def run_hunt_round(
             for sid in ("canvas-safe", "canvas-asset"):
                 if sid not in used_strategies:
                     used_strategies.append(sid)
+    elif canvas_unavailable:
+        save_json(
+            root / ".bug-hunter" / "runs" / run_id / "findings" / "raw" / "canvas__unavailable.json",
+            {"unavailable": canvas_unavailable},
+        )
 
     if dynamic_cmd:
         if "dynamic" not in used_strategies:

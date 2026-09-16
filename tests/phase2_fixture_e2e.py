@@ -140,7 +140,9 @@ def main() -> int:
         )
         (captures / "MANIFEST.json").write_text(json.dumps(manifest), encoding="utf-8")
 
-        flows = demo / ".bug-hunter" / "flows"
+        flows = demo / "flows"
+        if not flows.exists():
+            flows = demo / ".bug-hunter" / "flows"
         summary = hunt_round.run_hunt_round(
             root=root,
             run_id="run-1",

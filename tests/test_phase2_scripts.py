@@ -483,6 +483,145 @@ class TestCaptureShard(unittest.TestCase):
 
 
 class TestHuntRoundPhase2(unittest.TestCase):
+    def _write_minimal_state(self, root: Path, canvas_items: list) -> None:
+        bh = root / ".bug-hunter"
+        (bh / "runs" / "run-p2" / "captures").mkdir(parents=True)
+        (bh / "runs" / "run-p2" / "findings" / "raw").mkdir(parents=True)
+        state = {
+            "version": 1,
+            "phase": 2,
+            "modalities_enabled": ["code", "web-visual", "canvas"],
+            "surfaces": {
+                "web": {
+                    "base_url": "http://127.0.0.1:5173",
+                    "routes": ["/"],
+                    "viewports": ["375x812"],
+                    "degrade_level": "L3",
+                },
+                "canvas": {"kind": "scene-json", "items": canvas_items},
+            },
+            "visual_oracle": {"overflow_epsilon_px": 2},
+            "convergence": {"quiet_streak": 0, "required_quiet_streak": 2},
+        }
+        (bh / "state.json").write_text(json.dumps(state), encoding="utf-8")
+        (bh / "fingerprints.json").write_text(
+            json.dumps({"version": 1, "entries": {}}), encoding="utf-8"
+        )
+        captures = bh / "runs" / "run-p2" / "captures"
+        elements = {
+            "route": "/",
+            "viewport": "375x812",
+            "elements": [
+                {
+                    "selector": "html",
+                    "tag": "html",
+                    "bbox": {"x": 0, "y": 0, "w": 375, "h": 812},
+                    "scrollWidth": 375,
+                    "clientWidth": 375,
+                    "route": "/",
+                    "viewport": "375x812",
+                }
+            ],
+        }
+        (captures / "home__375x812__elements.json").write_text(
+            json.dumps(elements), encoding="utf-8"
+        )
+        manifest = capture_web.default_manifest(
+            base_url="http://127.0.0.1:5173",
+            routes=["/"],
+            viewports=["375x812"],
+            backend="python-playwright",
+            items=[
+                {
+                    "route": "/",
+                    "viewport": "375x812",
+                    "stem": "home__375x812",
+                    "status": "ok",
+                    "elements_json": "home__375x812__elements.json",
+                }
+            ],
+        )
+        (captures / "MANIFEST.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    def test_stub_canvas_does_not_elevate_l4(self):
+        """Critical fix: missing/unloadable canvas source must not fake L4/quiet."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_minimal_state(
+                root,
+                canvas_items=[{"id": "ghost", "source": "does/not/exist.scene.json"}],
+            )
+            summary = hunt_round.run_hunt_round(
+                root=root,
+                run_id="run-p2",
+                skip_capture=True,
+                captures=root / ".bug-hunter" / "runs" / "run-p2" / "captures",
+            )
+            self.assertEqual(summary.get("degrade_level"), "L3")
+            self.assertNotIn("canvas-safe", summary.get("strategies") or [])
+            self.assertNotIn("canvas", summary.get("by_modality") or {})
+            conv = summary.get("convergence") or {}
+            # canvas modality enabled but not covered → must not quiet
+            self.assertFalse(conv.get("quiet"))
+
+    def test_z_order_union_not_sum(self):
+        """Two 60% overlapping occluders on the same strip must not sum to 100%."""
+        item = canvas_probe.normalize_item(
+            {
+                "id": "stack",
+                "export_size": "100x100",
+                "objects": [
+                    {
+                        "id": "label",
+                        "type": "text",
+                        "x": 0,
+                        "y": 0,
+                        "w": 100,
+                        "h": 100,
+                        "zIndex": 0,
+                        "opacity": 1,
+                    },
+                    {
+                        "id": "p1",
+                        "type": "shape",
+                        "x": 0,
+                        "y": 0,
+                        "w": 60,
+                        "h": 100,
+                        "zIndex": 5,
+                        "opacity": 1,
+                    },
+                    {
+                        "id": "p2",
+                        "type": "shape",
+                        "x": 0,
+                        "y": 0,
+                        "w": 60,
+                        "h": 100,
+                        "zIndex": 6,
+                        "opacity": 1,
+                    },
+                ],
+            }
+        )
+        findings = canvas_probe.check_z_order_occlusion(item, min_coverage=0.98)
+        self.assertEqual(findings, [])
+
+    def test_full_bleed_bg_no_safe_area(self):
+        item = canvas_probe.normalize_item(
+            {
+                "id": "p",
+                "export_size": "800x600",
+                "objects": [
+                    {"id": "bg", "type": "shape", "x": 0, "y": 0, "w": 800, "h": 600, "zIndex": 0},
+                    {"id": "title", "type": "text", "x": 50, "y": 50, "w": 200, "h": 40, "zIndex": 1},
+                ],
+            }
+        )
+        findings = canvas_probe.check_safe_area(item)
+        ids = {f["location"].get("canvas_object_id") for f in findings}
+        self.assertNotIn("bg", ids)
+
     def test_ux_and_canvas_in_fixtures(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

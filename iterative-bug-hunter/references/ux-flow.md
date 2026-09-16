@@ -12,7 +12,7 @@ modality: `web-visual`。脚本：`scripts/ux_flow.py`。
 
 ## 符号化 flow（WebTestPilot 风格）
 
-Flow 文件（默认 `.bug-hunter/flows/*.json`）：
+Flow 文件（运行时默认 `.bug-hunter/flows/*.json`；验收 demo 固定在 `examples/acceptance-demo/flows/`，避免被 `.bug-hunter/` ignore 掉）：
 
 ```json
 {
