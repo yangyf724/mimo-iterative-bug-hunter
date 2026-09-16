@@ -1,0 +1,28 @@
+﻿# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Bug Hunter runtime
+.bug-hunter/
+!**/.bug-hunter/.gitkeep
+
+# Worktrees
+.worktrees/
+
+# IDE / temp
+.idea/
+.vscode/
+*.log
+*.tmp
