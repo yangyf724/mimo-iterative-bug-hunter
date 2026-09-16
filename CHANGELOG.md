@@ -13,6 +13,7 @@ Versioning follows [SemVer](https://semver.org/).
 Phase 0：可安装的 iterative-bug-hunter skill 骨架，能在本地 demo 上完成扫描 → L3 确认 → 指纹去重 → quiet 收敛 → 带盲区的 REPORT。
 
 ### Added
+- `LICENSE` — MIT 许可证 → 仓库可被他人合法复用与分发
 - `iterative-bug-hunter/SKILL.md` — 触发、Scope、主循环、quiet 四条件、Confirm 门槛与用户合同 → agent 可按协议迭代抓 bug 而非一次 lint 汇总
 - `iterative-bug-hunter/scripts/init_state.py` — O_EXCL 单写锁 + state/fingerprints/目录树初始化与 resume → 多会话安全、可断点续跑
 - `iterative-bug-hunter/scripts/fingerprint.py` — DESIGN §3.2 粗粒度指纹注册与去重 → 同 viewport 同问题跨轮不重复计数，1px 采集噪声不伪造新 bug
