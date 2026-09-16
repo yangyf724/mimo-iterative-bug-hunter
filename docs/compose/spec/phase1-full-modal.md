@@ -12,13 +12,15 @@ commits: 98e54da..HEAD
 
 **What was built** — Phase 1 全模态通道落地：`capture_web.py`（routes×viewports 矩阵、MANIFEST、Playwright Python/Node 后端、无 backend exit 3）；`layout_probe.py` 扩展为 overflow-x / text-clip / overlap-interactive / zero-size / off-canvas / touch-target；`contrast_probe.py`（WCAG 对比度、字号、行高，背景 depth 回溯）；`visual_diff.py`（snapshot/compare/approve）；`fix_gate.py`（target_cleared + zero_new_layout + pixel_gate + unit_green）；`hunt_round.py` 单轮编排；`init_state` Phase 1 oracle 默认值。demo 注入 touch-target / overlap / zero-size；references 与 SKILL.md 同步。
 
-**Verification** — `python -m unittest discover -s tests`：54 tests OK。`tests/phase1_fixture_e2e.py`：run-1 发现 8 条（overflow-x/touch-target/overlap×2/zero-size×2/contrast×2），overlap 在 375 与 1440 指纹区分；run-2 new=0 known=8；fix_gate 对 overflow-x 修复 target_cleared + zero_new 通过。`capture_web.py` 无 Playwright 时 exit 3 + MANIFEST backend=unavailable。
+**Verification** — `python -m unittest discover -s tests`：61 tests OK（含 TestReviewCriticals）。`tests/phase1_fixture_e2e.py`：run-1 发现 8 条（overflow-x/touch-target/overlap×2/zero-size×2/contrast×2），overlap 在 375 与 1440 指纹区分；run-2 new=0 known=8；fix_gate 对 overflow-x 修复 target_cleared + zero_new 通过。`capture_web.py` 无 Playwright 时 exit 3 + MANIFEST backend=unavailable。
+
+**Review** — 独立审查发现 5 critical（空 MANIFEST 假 quiet、depth 写死 0、[data-testid] 误判 interactive、对比度背景取浅层、根节点 overflow 双计），已在 `c83b92a` 修复并针对性复审关闭。
 
 **Journey log** —
 1. 本机 `MIMO_PYTHON` 无 playwright 包且 node 无 playwright 模块 → 采集脚本设计为三层降级，验收用 fixture E2E。
-2. `hunt_round --skip-capture` 初版把 probe 写在 `if not capture` 分支内，导致 fixtures 不探测；改为「有 MANIFEST 就 probe」。
+2. `hunt_round --skip-capture` 初版把 probe 写在 `if not capture` 分支内，导致 fixtures 不探测；改为「有可用 MANIFEST 就 probe」。
 3. Windows `shell=True` 下 `node -e '...'` 单引号不生效；dynamic 失败用例改用 `sys.executable -c raise SystemExit(1)`。
-4. 默认 degrade=L1 会跳过 web probe；有 MANIFEST 时本轮视为 L2，与「已有采集产物」语义一致。
+4. 首轮审查 5 critical 全部修复：MANIFEST 需 backend≠unavailable 且有 ok items；capture 用 depthOf 算真实 depth；interactive 不含 [data-testid]；对比度祖先按 depth 降序取最近；html/body 只参与 page-level overflow-x。
 5. 指纹仍用粗粒度 rule digest，避免 1px 噪声伪造新 finding（沿用 Phase 0 结论）。
 
 ## [S1] Problem

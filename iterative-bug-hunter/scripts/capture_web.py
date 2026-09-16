@@ -40,19 +40,6 @@ INTERACTIVE_SELECTORS = (
 )
 
 
-def is_interactive_tag(tag: str, *, role: str | None = None, has_onclick: bool = False) -> bool:
-    tag_l = (tag or "").lower()
-    if tag_l in ("a", "button", "select", "textarea"):
-        return True
-    if tag_l == "input":
-        return True
-    if role in ("button", "link"):
-        return True
-    if has_onclick:
-        return True
-    return False
-
-
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
