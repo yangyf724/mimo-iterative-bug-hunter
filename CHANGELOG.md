@@ -7,26 +7,33 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-09-16
+## [0.2.0] - 2026-09-17
 
 ### 摘要
-Phase 1 全模态成型：多 viewport 采集、完整 layout-geom / contrast-type / responsive-matrix、像素 visual-diff 与可判定 Fix Gate、hunt_round 单轮编排。
+Phase 1 全模态成型：多 viewport 采集、完整 layout-geom / contrast-type / responsive-matrix、像素 visual-diff 与可判定 Fix Gate、hunt_round 单轮编排。独立审查 5 个 critical 已修复。
 
 ### Added
-- `capture_web.py` — routes×viewports 采集，MANIFEST + elements schema；Playwright Python/Node 后端，不可用时 exit 3
-- `layout_probe.py` 扩展 — `text-clip` / `overlap-interactive` / `zero-size` / `off-canvas` / `touch-target`
-- `contrast_probe.py` — WCAG `contrast-text` / `font-too-small` / `line-height-tight`，背景 depth 回溯
-- `visual_diff.py` — baseline snapshot / 像素 compare / intentional approve（approvals.jsonl）
-- `fix_gate.py` — target_cleared + zero_new_layout + pixel_gate + unit_green，写 fix-verify.json
-- `hunt_round.py` — 单轮 capture→probe→register→summary→converge 评估
-- `init_state.py` Phase 1 默认值 — overlap_ratio / line_height_min_ratio / visual_diff_threshold
-- demo 注入 touch-target / overlap-interactive / zero-size 缺陷
-- `tests/test_phase1_scripts.py` + `tests/phase1_fixture_e2e.py` — 54 unit + fixture E2E
+- `iterative-bug-hunter/scripts/capture_web.py` — routes×viewports 采集，MANIFEST + elements schema；Playwright Python/Node 后端，不可用时 exit 3 → agent 不必手搓 elements.json
+- `iterative-bug-hunter/scripts/layout_probe.py` 扩展 — `text-clip` / `overlap-interactive` / `zero-size` / `off-canvas` / `touch-target` → 窄屏触控与布局问题可机器判定
+- `iterative-bug-hunter/scripts/contrast_probe.py` — WCAG `contrast-text` / `font-too-small` / `line-height-tight`，最近祖先背景回溯 → 低对比度可出 L3 数值证据
+- `iterative-bug-hunter/scripts/visual_diff.py` — baseline snapshot / 像素 compare / intentional approve → 修完可判视觉回归与有意变更
+- `iterative-bug-hunter/scripts/fix_gate.py` — target_cleared + zero_new_layout + pixel_gate + unit_green → Fix Gate 可机器放行
+- `iterative-bug-hunter/scripts/hunt_round.py` — 单轮 capture→probe→register→summary→converge → 缩短 agent 手工编排
+- `examples/acceptance-demo/` — 注入 touch-target / overlap-interactive / zero-size → Phase 1 DoD 可复现
+- `tests/test_phase1_scripts.py` + `tests/phase1_fixture_e2e.py` — 61 unit + fixture E2E → 回归安全网
 
 ### Changed
-- `references/` capture-protocol / visual-rules / fix-gate / strategies 更新为 Phase 1 契约
-- `SKILL.md` 主循环指向 capture_web / hunt_round / fix_gate
-- `docs/ACCEPTANCE.md` 增补 Phase 1 DoD 8 项
+- `iterative-bug-hunter/references/` capture-protocol / visual-rules / fix-gate / strategies — 更新为 Phase 1 契约，细节不塞 SKILL.md
+- `iterative-bug-hunter/SKILL.md` — 主循环指向 capture_web / hunt_round / fix_gate
+- `docs/ACCEPTANCE.md` — 增补 Phase 1 DoD 8 项
+- `iterative-bug-hunter/scripts/init_state.py` — phase=1 与 overlap/line-height/visual_diff oracle 默认值
+
+### Fixed
+- 空/`unavailable` MANIFEST 不再记入 web 策略或抬升 degrade，避免假 quiet
+- capture 计算真实 DOM depth（原写死 0），对比度祖先回溯可用
+- `[data-testid]` 不再视为 interactive，容器不再误报 overlap
+- 对比度背景取最近不透明祖先，而非最浅层
+- html/body 只参与 page-level `overflow-x`，不再双计元素级 right 溢出
 
 ## [0.1.0] - 2026-09-16
 
