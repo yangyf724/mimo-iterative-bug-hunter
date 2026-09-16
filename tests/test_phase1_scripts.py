@@ -623,5 +623,153 @@ class TestInitStatePhase1(unittest.TestCase):
             self.assertIn("line_height_min_ratio", oracle)
 
 
+class TestReviewCriticals(unittest.TestCase):
+    """Regression tests for independent-review critical findings."""
+
+    def test_interactive_selectors_exclude_data_testid(self):
+        self.assertNotIn("[data-testid]", cw.INTERACTIVE_SELECTORS)
+
+    def test_container_with_testid_not_interactive_in_layout_overlap(self):
+        # overlap-stage (container) + two buttons: only A~B should fire.
+        elements = [
+            {
+                "selector": "[data-testid=overlap-stage]",
+                "route": "/",
+                "viewport": "1440x900",
+                "interactive": False,
+                "bbox": {"x": 0, "y": 0, "w": 200, "h": 80},
+            },
+            {
+                "selector": "[data-testid=a]",
+                "route": "/",
+                "viewport": "1440x900",
+                "interactive": True,
+                "bbox": {"x": 0, "y": 0, "w": 120, "h": 48},
+            },
+            {
+                "selector": "[data-testid=b]",
+                "route": "/",
+                "viewport": "1440x900",
+                "interactive": True,
+                "bbox": {"x": 40, "y": 12, "w": 120, "h": 48},
+            },
+        ]
+        findings = lp.check_overlap_interactive(elements, overlap_ratio=0.2)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("a", findings[0]["metrics"]["selectors"][0] + findings[0]["metrics"]["selectors"][1])
+
+    def test_body_root_not_double_counted_on_right_overflow(self):
+        elements = [
+            {
+                "selector": "html",
+                "route": "/",
+                "viewport": "375x812",
+                "scrollWidth": 400,
+                "clientWidth": 375,
+                "bbox": {"x": 0, "y": 0, "w": 400, "h": 812},
+            },
+            {
+                "selector": "body",
+                "route": "/",
+                "viewport": "375x812",
+                "scrollWidth": 400,
+                "clientWidth": 375,
+                "bbox": {"x": 0, "y": 0, "w": 400, "h": 812},
+            },
+        ]
+        findings = lp.check_overflow_x(elements, viewport_width=375)
+        html_body = [
+            f for f in findings if f["location"]["selector"] in ("html", "body")
+        ]
+        # Only one page-level finding; body must not add a second right-overflow.
+        self.assertEqual(len(html_body), 1)
+
+    def test_contrast_prefers_nearest_ancestor_background(self):
+        elements = [
+            {
+                "selector": "html",
+                "tag": "html",
+                "depth": 0,
+                "computed": {"backgroundColor": "rgb(255,255,255)"},
+            },
+            {
+                "selector": "body",
+                "tag": "body",
+                "depth": 1,
+                "computed": {"backgroundColor": "rgb(255,255,255)"},
+            },
+            {
+                "selector": ".parent-red",
+                "depth": 3,
+                "computed": {"backgroundColor": "rgb(220,0,0)"},
+            },
+            {
+                "selector": ".child-text",
+                "route": "/",
+                "viewport": "375x812",
+                "depth": 5,
+                "text": "hello",
+                "bbox": {"x": 0, "y": 0, "w": 100, "h": 20},
+                "computed": {
+                    "color": "rgb(255,255,255)",
+                    "backgroundColor": "rgba(0,0,0,0)",
+                    "fontSize": "16px",
+                    "lineHeight": "24px",
+                    "fontWeight": "400",
+                },
+            },
+        ]
+        bg, assumed = cp.resolve_background(elements[3], elements)
+        self.assertFalse(assumed)
+        # Nearest opaque ancestor is parent-red, not body/html white.
+        self.assertEqual(bg, (220.0, 0.0, 0.0))
+
+    def test_empty_unavailable_manifest_does_not_false_quiet(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            init_mod.init_state(root, routes=["/"], viewports=["375x812"])
+            captures = root / ".bug-hunter" / "runs" / "run-1" / "captures"
+            captures.mkdir(parents=True)
+            (captures / "MANIFEST.json").write_text(
+                json.dumps(
+                    {
+                        "backend": "unavailable",
+                        "items": [],
+                        "error": "No Playwright backend",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            summary = hr.run_hunt_round(
+                root=root,
+                run_id="run-1",
+                skip_capture=True,
+                captures=captures,
+                dynamic_cmd=f'"{sys.executable}" -c "raise SystemExit(0)"',
+            )
+            # Must not credit web strategies from an empty unavailable manifest.
+            self.assertNotIn("layout-geom", summary["strategies"])
+            self.assertNotIn("contrast-type", summary["strategies"])
+            self.assertNotEqual(summary["degrade_level"], "L2")
+            # At L1 only code is required; quiet with dynamic-only is legitimate.
+            # The false-quiet bug was elevating to L2 and claiming web coverage.
+            self.assertEqual(summary["degrade_level"], "L1")
+            self.assertIn("dynamic", summary["strategies"])
+
+    def test_depth_preserved_in_normalize_element(self):
+        el = cw.normalize_element(
+            {"selector": "p", "depth": 4, "bbox": {"x": 0, "y": 0, "w": 1, "h": 1}},
+            route="/",
+            viewport="375x812",
+        )
+        self.assertEqual(el["depth"], 4)
+
+    def test_capture_source_has_depth_of(self):
+        # Guard: both Node runner and Python evaluate must compute real depth.
+        src = Path(cw.__file__).read_text(encoding="utf-8")
+        self.assertGreaterEqual(src.count("depthOf"), 2)
+        self.assertNotIn('"depth": 0,\n                          inViewport', src)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,8 +36,21 @@ INTERACTIVE_SELECTORS = (
     "[role=button]",
     "[role=link]",
     "[onclick]",
-    "[data-testid]",
+    # Note: [data-testid] is NOT interactive — it is often a container marker.
 )
+
+
+def is_interactive_tag(tag: str, *, role: str | None = None, has_onclick: bool = False) -> bool:
+    tag_l = (tag or "").lower()
+    if tag_l in ("a", "button", "select", "textarea"):
+        return True
+    if tag_l == "input":
+        return True
+    if role in ("button", "link"):
+        return True
+    if has_onclick:
+        return True
+    return False
 
 
 def utc_now() -> str:
@@ -180,14 +193,20 @@ async function main() {
     const isInteractive = (el) => {
       if (!el || el.nodeType !== 1) return false;
       const tag = el.tagName.toLowerCase();
-      if (['a', 'button', 'select', 'textarea'].includes(tag)) return true;
+      if (tag === 'a') return !!el.getAttribute('href');
+      if (['button', 'select', 'textarea'].includes(tag)) return true;
       if (tag === 'input' && el.type !== 'hidden') return true;
       if (el.getAttribute('role') === 'button' || el.getAttribute('role') === 'link') return true;
       if (el.hasAttribute('onclick')) return true;
-      if (el.matches(selectors.join(','))) return true;
       return false;
     };
     const cssColor = (value) => value;
+    const depthOf = (el) => {
+      let d = 0;
+      let n = el;
+      while (n && n.parentElement) { d += 1; n = n.parentElement; }
+      return d;
+    };
     const all = Array.from(document.querySelectorAll('body, body *')).slice(0, 800);
     const elements = [];
     // document root
@@ -234,7 +253,7 @@ async function main() {
           cursor: cs.cursor,
         },
         text: (el.innerText || el.textContent || '').trim().slice(0, 200),
-        depth: 0,
+        depth: depthOf(el),
         inViewport: rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth,
       });
     }
@@ -314,13 +333,21 @@ def capture_with_python_playwright(
                           const isInteractive = (el) => {
                             if (!el || el.nodeType !== 1) return false;
                             const tag = el.tagName.toLowerCase();
-                            if (['a', 'button', 'select', 'textarea'].includes(tag)) return true;
+                            if (['a', 'button', 'select', 'textarea'].includes(tag)) {
+                              if (tag === 'a' && !el.getAttribute('href')) return false;
+                              return true;
+                            }
                             if (tag === 'input' && el.type !== 'hidden') return true;
                             const role = el.getAttribute('role');
                             if (role === 'button' || role === 'link') return true;
                             if (el.hasAttribute('onclick')) return true;
-                            try { if (el.matches(selectors.join(','))) return true; } catch (e) {}
                             return false;
+                          };
+                          const depthOf = (el) => {
+                            let d = 0;
+                            let n = el;
+                            while (n && n.parentElement) { d += 1; n = n.parentElement; }
+                            return d;
                           };
                           const all = Array.from(document.querySelectorAll('body, body *')).slice(0, 800);
                           const elements = [];
@@ -349,7 +376,7 @@ def capture_with_python_playwright(
                                 overflowX: cs.overflowX, textOverflow: cs.textOverflow, cursor: cs.cursor,
                               },
                               text: (el.innerText || el.textContent || '').trim().slice(0, 200),
-                              depth: 0,
+                              depth: depthOf(el),
                               inViewport: rect.bottom > 0 && rect.top < window.innerHeight
                                 && rect.right > 0 && rect.left < window.innerWidth,
                             });

@@ -108,27 +108,30 @@ def resolve_background(
     el: dict[str, Any],
     elements_by_depth: list[dict[str, Any]],
 ) -> tuple[tuple[float, float, float], bool]:
-    """Return (rgb, assumed). Walk shallower depths for opaque backgrounds."""
+    """Return (rgb, assumed). Walk nearest ancestors first (higher depth = closer)."""
     computed = el.get("computed") or {}
     bg = parse_css_color(computed.get("backgroundColor"))
     if bg and bg[3] > 0.95:
         return (bg[0], bg[1], bg[2]), False
 
     depth = int(el.get("depth") or 0)
-    # Prefer explicit ancestors already in list with lower depth and opaque bg.
-    candidates = sorted(elements_by_depth, key=lambda e: int(e.get("depth") or 0))
+    # Nearest ancestor first: candidates with lower depth, sorted descending
+    # so the parent (depth-1) is preferred over html (depth 0).
+    candidates = [
+        e
+        for e in elements_by_depth
+        if e is not el and int(e.get("depth") or 0) < depth
+    ]
+    candidates.sort(key=lambda e: int(e.get("depth") or 0), reverse=True)
     for other in candidates:
-        if other is el:
-            continue
-        other_depth = int(other.get("depth") or 0)
-        if other_depth >= depth:
-            continue
         obg = parse_css_color((other.get("computed") or {}).get("backgroundColor"))
         if obg and obg[3] > 0.95:
             return (obg[0], obg[1], obg[2]), False
 
-    # Fallback: first opaque bg in list (often body/html).
-    for other in candidates:
+    # Fallback: any opaque bg in list (often body/html).
+    for other in elements_by_depth:
+        if other is el:
+            continue
         obg = parse_css_color((other.get("computed") or {}).get("backgroundColor"))
         if obg and obg[3] > 0.95:
             return (obg[0], obg[1], obg[2]), False

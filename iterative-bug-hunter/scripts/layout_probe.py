@@ -108,7 +108,10 @@ def check_overflow_x(
             )
 
     for el in elements:
+        # Root nodes only participate in page-level overflow-x above.
         if root is not None and el is root:
+            continue
+        if _is_root(el):
             continue
         bbox = el.get("bbox") or {}
         if not bbox:

@@ -211,9 +211,25 @@ def run_hunt_round(
             degrade = "L1"
             web_probe_allowed = False
 
-    # Probe existing captures whenever MANIFEST is present (fixtures / resume / L2+).
-    # Degrade only gates *new* capture attempts above, not consuming already-collected artifacts.
-    if (captures_dir / "MANIFEST.json").exists():
+    # Probe existing captures only when MANIFEST actually has successful cells
+    # (fixtures / resume / L2+). An empty or unavailable-backend MANIFEST must
+    # not credit web strategies or elevate degrade — that would false-quiet.
+    manifest_path = captures_dir / "MANIFEST.json"
+    usable_manifest = False
+    if manifest_path.exists():
+        try:
+            manifest_data = load_json(manifest_path)
+        except Exception:
+            manifest_data = {}
+        backend = manifest_data.get("backend")
+        ok_items = [
+            i
+            for i in (manifest_data.get("items") or [])
+            if i.get("status") == "ok" and i.get("elements_json")
+        ]
+        usable_manifest = backend != "unavailable" and bool(ok_items)
+
+    if usable_manifest:
         if "layout-geom" not in used_strategies:
             used_strategies.append("layout-geom")
         if "contrast-type" not in used_strategies:
@@ -222,7 +238,7 @@ def run_hunt_round(
             used_strategies.append("responsive-matrix")
         cell_findings = probe_manifest_cells(captures_dir, oracle=oracle)
         findings.extend(cell_findings)
-        # Consuming captures implies web-visual was exercised this round.
+        # Consuming real capture cells implies web-visual was exercised this round.
         if degrade in ("L0", "L1"):
             degrade = "L2"
 
