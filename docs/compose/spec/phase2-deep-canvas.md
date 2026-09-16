@@ -1,16 +1,27 @@
 ---
 feature: phase2-deep-canvas
-status: in-progress
+status: delivered
 updated: 2026-09-17
 branch: feat/phase2
-commits: 4119fd7..HEAD
+commits: 4119fd7..b6bccc0
 ---
 
 # Phase 2 — 深层与画布
 
 ## Report
 
-（交付后填写）
+**What was built** — Phase 2 深层通道落地：`ux_flow.py`（dead-link / missing-feedback / missing-empty-state + WebTestPilot 符号化 pre/post，符号别名可解析）；`canvas_probe.py`（safe-area（全幅背景跳过）/ export-mismatch / z-order（矩形并集覆盖）/ low-res / aspect / hierarchy-flat→Deferred）；`vlm_audit.py`（scaffold 双视角模板、共识合并、与机器 finding 交叉不双计）；`capture_web.py --shard i/n` + `merge`（subagent 白名单协议）；`hunt_round` 编排 ux/canvas，仅在 objects/assets 真实可扫时才升 L4；`init_state` phase=2 与 oracle 默认值。demo 注入死链、无反馈 submit、空列表、`canvas/poster.scene.json`、`flows/empty-submit.json`（非 ignore 路径）。references 四份新协议 + SKILL/strategies 同步。
+
+**Verification** — `python -m unittest discover -s tests`：88 tests OK。`tests/phase2_fixture_e2e.py`：run-1 同时产出 overflow-x + dead-link + missing-feedback + missing-empty-state + ux-flow-step + safe-area + export-mismatch + low-res；L3→L4 `degrade_elevated_by=canvas-items`；VLM consensus=1 且与机器 overflow 交叉不双计。
+
+**Review** — 独立审查 1 critical（stub canvas 假升 L4）+ 2 major（z-order 配对求和、flows 被 gitignore），已在 `b6bccc0` 修复并针对性复审关闭。
+
+**Journey log** —
+1. 环境仍禁止 `git worktree add`，沿用主 checkout `feat/phase2` 分支（与 Phase 0/1 相同 override）。
+2. 安全区规则需跳过全幅背景，否则每个海报背景都是 FP。
+3. z-order 必须用矩形并集；两块各盖 60% 的同区面板不能加成 100%。
+4. 验收 fixture 不能放在 `.bug-hunter/`（被 gitignore）；demo flows 固定到 `examples/acceptance-demo/flows/`。
+5. L4 只在「至少一个 item 从有效 source 载入 objects/assets」时提升；不可扫项记 unavailable，不参与 quiet。
 
 ## [S1] Problem
 
@@ -281,10 +292,10 @@ L4 探测：state 同时满足 web 可开页 + canvas items 有效 source 存在
 
 ## Tasks
 
-- [ ] T1: 本 spec + 分支 `feat/phase2` — acceptance: 文档存在且 status=designed (covers: S2)
-- [ ] T2: `canvas_probe.py` + 统一 item 解析 + 规则 — acceptance: safe-area/export/low-res/aspect/z-order 正反例单测通过 (covers: S2)
-- [ ] T3: `ux_flow.py` 静态规则 + 符号化 step — acceptance: dead-link/missing-feedback/flow-step 正反例与 unavailable 路径通过 (covers: S2)
-- [ ] T4: `vlm_audit.py` merge/scaffold + 交叉去重 — acceptance: 一致合并、不一致丢弃、与 raw 不双计 (covers: S2)
-- [ ] T5: `capture_web.py --shard` + `merge` — acceptance: 分片划分与 MANIFEST 合并单测通过 (covers: S2)
-- [ ] T6: `init_state` phase2 默认 + `hunt_round` 编排 + references/SKILL — acceptance: fixtures 编排单测通过；文档指向新脚本 (covers: S2; depends: T2–T5)
-- [ ] T7: demo 注入 Phase 2 缺陷 + canvas/flows + ACCEPTANCE DoD + unittest 全绿 — acceptance: `python -m unittest discover -s tests` OK；DoD 表完整 (covers: S1;S2; depends: T2–T6)
+- [x] T1: 本 spec + 分支 `feat/phase2` — acceptance: 文档存在且 status=designed (covers: S2)
+- [x] T2: `canvas_probe.py` + 统一 item 解析 + 规则 — acceptance: safe-area/export/low-res/aspect/z-order 正反例单测通过 (covers: S2)
+- [x] T3: `ux_flow.py` 静态规则 + 符号化 step — acceptance: dead-link/missing-feedback/flow-step 正反例与 unavailable 路径通过 (covers: S2)
+- [x] T4: `vlm_audit.py` merge/scaffold + 交叉去重 — acceptance: 一致合并、不一致丢弃、与 raw 不双计 (covers: S2)
+- [x] T5: `capture_web.py --shard` + `merge` — acceptance: 分片划分与 MANIFEST 合并单测通过 (covers: S2)
+- [x] T6: `init_state` phase2 默认 + `hunt_round` 编排 + references/SKILL — acceptance: fixtures 编排单测通过；文档指向新脚本 (covers: S2; depends: T2–T5)
+- [x] T7: demo 注入 Phase 2 缺陷 + canvas/flows + ACCEPTANCE DoD + unittest 全绿 — acceptance: `python -m unittest discover -s tests` OK；DoD 表完整 (covers: S1;S2; depends: T2–T6)
