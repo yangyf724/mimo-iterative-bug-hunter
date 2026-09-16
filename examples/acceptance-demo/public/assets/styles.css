@@ -101,3 +101,56 @@ footer {
   color: #64748b;
   font-size: 12px;
 }
+
+/* INTENTIONAL Phase 1: touch target << 44px */
+.tool-row {
+  margin-top: 16px;
+}
+
+.btn-tiny {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* INTENTIONAL Phase 1: two interactive boxes overlap heavily */
+.overlap-stage {
+  position: relative;
+  margin-top: 24px;
+  height: 80px;
+}
+
+.overlap-a,
+.overlap-b {
+  position: absolute;
+  width: 120px;
+  height: 48px;
+  border: 1px solid #334155;
+  background: #e2e8f0;
+}
+
+.overlap-a {
+  left: 0;
+  top: 0;
+}
+
+.overlap-b {
+  left: 40px;
+  top: 12px;
+  background: rgba(37, 99, 235, 0.35);
+}
+
+/* INTENTIONAL Phase 1: interactive node with zero size */
+.zero-btn {
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  opacity: 0;
+}

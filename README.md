@@ -11,9 +11,10 @@
 
 - `DESIGN.md` — 设计真源（全模态 taxonomy、策略库、收敛与 Fix Gate）
 - `iterative-bug-hunter/` — skill 本体（SKILL.md + scripts + references + locales）
-- `examples/acceptance-demo/` — Phase 0 本地验收 demo（双路由 + 注入 overflow-x / 测试失败）
-- `docs/ACCEPTANCE.md` — Phase 0 DoD 勾选
-- `tests/` — 状态机脚本单元测试（stdlib unittest）
+- `examples/acceptance-demo/` — Phase 0/1 本地验收 demo（双路由 + 注入 overflow / touch-target / overlap / contrast / 测试失败）
+- `docs/ACCEPTANCE.md` — Phase 0/1 DoD 勾选
+- `docs/compose/spec/` — 各 Phase feature 文档
+- `tests/` — 状态机与探针单元测试（stdlib unittest）
 
 ## 快速开始
 
@@ -27,6 +28,10 @@ $env:MIMO_PYTHON -m unittest discover -s tests -v
 # 启动验收 demo
 cd examples/acceptance-demo
 npm start   # http://127.0.0.1:5173
+
+# Phase 1：采集 + 单轮 hunt（需 Playwright；否则用 MCP 采集后 --skip-capture）
+& $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/capture_web.py --root . --run-id run-1
+& $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/hunt_round.py --root . --run-id run-1 --skip-capture --dynamic-cmd "npm test"
 ```
 
 ## 安装为 MiMo Desktop skill（可选）

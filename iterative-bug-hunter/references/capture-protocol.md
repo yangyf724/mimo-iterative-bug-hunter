@@ -1,46 +1,76 @@
-# 采集协议（Capture Protocol）— Phase 0
+# 采集协议（Capture Protocol）— Phase 1
 
-1. **环境**：优先 Playwright / playwright-mcp；dev server 由用户启动或 skill 请求启动，记录 base_url。
+1. **环境**：优先 `scripts/capture_web.py`（Playwright Python 或 Node）；不可用时用 playwright-mcp 按本协议手工采集，再跑 probes。
 2. **路由集**：`state.surfaces.web.routes`；默认补全关键链接，设上限。
 3. **Viewport 矩阵**：至少 `375x812`、`1440x900`。
 4. **每页产物**（写入 `runs/run-N/captures/`）：
-   - `full.png` + `viewport.png`
-   - `elements.json`：selector、bbox、text、scrollWidth/clientWidth、必要 computed style
-   - `ax.json`：Accessibility tree
-   - `console.json`：error/warning
-5. **稳定化**：network idle / 显式 wait；`prefers-reduced-motion: reduce` 禁动画。
+
+```
+{route_slug}__{WxH}__viewport.png
+{route_slug}__{WxH}__full.png          # 可选
+{route_slug}__{WxH}__elements.json
+{route_slug}__{WxH}__ax.json           # 可选
+{route_slug}__{WxH}__console.json
+MANIFEST.json
+```
+
+5. **稳定化**：network idle；`prefers-reduced-motion: reduce` 禁动画。
 6. **认证**：storage_state；未授权页跳过并记 Blind Spots。
-7. **MANIFEST**：`runs/run-N/captures/MANIFEST.json` 记录产物相对路径，Confirm 引用。
+7. **MANIFEST**：`base_url`, `routes`, `viewports`, `backend`, `items[]`（route/viewport/stem/status/相对路径）, `captured_at`。
 
-## Playwright 抽取 overflow 所需字段（供 layout_probe）
+## 脚本入口
 
-对每个关键元素及 document：
+```powershell
+# 从 state.json 读 routes/viewports/base_url
+& $env:MIMO_PYTHON iterative-bug-hunter/scripts/capture_web.py --root <project> --run-id run-1
+
+# 或显式指定
+& $env:MIMO_PYTHON iterative-bug-hunter/scripts/capture_web.py --root <project> `
+  --base-url http://127.0.0.1:5173 --routes / /about --viewports 375x812 1440x900
+```
+
+退出码：`0` 全部成功 · `1` 部分失败 · `2` 参数错误 · `3` 无 Playwright backend（MANIFEST `backend=unavailable`）。
+
+## elements.json schema（供 layout / contrast / responsive）
+
+每项必填：
 
 ```json
 {
-  "selector": "button.cta",
+  "selector": "[data-testid=primary-cta]",
+  "tag": "button",
   "route": "/",
   "viewport": "375x812",
   "interactive": true,
-  "bbox": {"x": 340, "y": 620, "w": 120, "h": 48},
-  "scrollWidth": 120,
-  "clientWidth": 102,
-  "text_overflow": "visible"
+  "bbox": {"x": 0, "y": 0, "w": 12, "h": 12},
+  "scrollWidth": 0,
+  "clientWidth": 0,
+  "text_overflow": "visible",
+  "computed": {
+    "color": "rgb(15, 23, 42)",
+    "backgroundColor": "rgb(255, 255, 255)",
+    "fontSize": "16px",
+    "lineHeight": "24px",
+    "fontWeight": "400",
+    "overflowX": "visible",
+    "textOverflow": "clip",
+    "cursor": "pointer"
+  },
+  "text": "…",
+  "depth": 0,
+  "inViewport": true
 }
 ```
 
-document 根节点：
+document 根：`selector: "html"`，带 `scrollWidth` / `clientWidth`。
 
-```json
-{
-  "selector": "html",
-  "route": "/",
-  "viewport": "375x812",
-  "scrollWidth": 393,
-  "clientWidth": 375,
-  "bbox": {"x": 0, "y": 0, "w": 375, "h": 812}
-}
-```
+## Playwright MCP 手工采集（backend 不可用时）
+
+1. 打开 `base_url + route`，viewport 设为矩阵中一格；
+2. 截 viewport 截图，路径按上表命名；
+3. `page.evaluate` 抽取 elements（字段同 schema）；
+4. 写 `elements.json` 与 `MANIFEST.json`（`backend: "manual-mcp"`）；
+5. 再跑 `layout_probe.py` / `contrast_probe.py` 或 `hunt_round.py --skip-capture`。
 
 ## 画布（Phase 2 索引）
 
