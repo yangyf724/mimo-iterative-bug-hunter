@@ -13,7 +13,7 @@ description: >
 
 # Iterative Bug Hunter
 
-对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）通道；Phase 0 含最小布局几何 `overflow-x` 与 axe 探测入口。
+对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）通道；Phase 1 含多 viewport 采集、完整 layout-geom / contrast-type / responsive-matrix、像素 visual-diff 与可判定 Fix Gate。
 
 ## 触发
 
@@ -52,13 +52,12 @@ description: >
 1. **Bootstrap** — `scripts/init_state.py`（已有 `state.json` 则 resume：`--resume-summary`）。
 2. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`。
 3. **Plan** — 选策略集；禁止连续两轮完全相同；quiet_streak≥1 时加压。
-4. **Capture** — L≥2 时按 [`references/capture-protocol.md`](references/capture-protocol.md) 采集截图/DOM/AX。
-5. **Execute** — 跑策略；写 `runs/run-N/findings/raw/`。
-6. **Fingerprint** — `scripts/fingerprint.py --register` 去重。
-7. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed。
-8. **Fix（可选）** — 仅 Confirmed；回归门见 [`references/fix-gate.md`](references/fix-gate.md)。
-9. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
-10. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`。
+4. **Capture** — L≥2 时 `scripts/capture_web.py`（或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
+5. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py`。
+6. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed。
+7. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
+8. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
+9. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`。
 
 ### quiet 四条件（K 默认 2）
 
@@ -67,7 +66,7 @@ description: >
 1. 执行了 ≥1 条「当前 degrade 允许」的策略；
 2. 策略集覆盖 `modalities_enabled` 中每个**仍可用**的 modality；
 3. 新 Confirmed == 0；
-4. 无新回归（功能失败 / 视觉 diff 超阈 / 新 axe 违规）。
+4. 无新回归（功能失败 / 视觉 diff 超阈或 intentional 已批 / 新 axe 违规）。
 
 违反任一条则 `quiet_streak` 清零。`quiet_streak ≥ K` 且预算未耗尽 → 收敛。
 

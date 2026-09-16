@@ -13,7 +13,7 @@ from typing import Any
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
     "skill": "iterative-bug-hunter",
-    "phase": 0,
+    "phase": 1,
     "mode": "hunt-and-fix",
     "created_at": None,
     "updated_at": None,
@@ -41,6 +41,9 @@ DEFAULT_STATE: dict[str, Any] = {
         "allow_subjective": False,
         "fp_downweight_threshold": 0.7,
         "fp_calibration_runs": 1,
+        "overlap_ratio": 0.2,
+        "line_height_min_ratio": 1.2,
+        "visual_diff_threshold": 0.01,
     },
     "budget": {
         "max_runs": 20,

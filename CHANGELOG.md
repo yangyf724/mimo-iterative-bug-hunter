@@ -7,6 +7,27 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-16
+
+### 摘要
+Phase 1 全模态成型：多 viewport 采集、完整 layout-geom / contrast-type / responsive-matrix、像素 visual-diff 与可判定 Fix Gate、hunt_round 单轮编排。
+
+### Added
+- `capture_web.py` — routes×viewports 采集，MANIFEST + elements schema；Playwright Python/Node 后端，不可用时 exit 3
+- `layout_probe.py` 扩展 — `text-clip` / `overlap-interactive` / `zero-size` / `off-canvas` / `touch-target`
+- `contrast_probe.py` — WCAG `contrast-text` / `font-too-small` / `line-height-tight`，背景 depth 回溯
+- `visual_diff.py` — baseline snapshot / 像素 compare / intentional approve（approvals.jsonl）
+- `fix_gate.py` — target_cleared + zero_new_layout + pixel_gate + unit_green，写 fix-verify.json
+- `hunt_round.py` — 单轮 capture→probe→register→summary→converge 评估
+- `init_state.py` Phase 1 默认值 — overlap_ratio / line_height_min_ratio / visual_diff_threshold
+- demo 注入 touch-target / overlap-interactive / zero-size 缺陷
+- `tests/test_phase1_scripts.py` + `tests/phase1_fixture_e2e.py` — 54 unit + fixture E2E
+
+### Changed
+- `references/` capture-protocol / visual-rules / fix-gate / strategies 更新为 Phase 1 契约
+- `SKILL.md` 主循环指向 capture_web / hunt_round / fix_gate
+- `docs/ACCEPTANCE.md` 增补 Phase 1 DoD 8 项
+
 ## [0.1.0] - 2026-09-16
 
 ### 摘要

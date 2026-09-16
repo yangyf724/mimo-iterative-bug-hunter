@@ -31,6 +31,20 @@
       <h2>卡片</h2>
       <p>普通内容区，不应溢出。</p>
     </article>
+
+    <!-- INTENTIONAL Phase 1: tiny touch target -->
+    <section class="tool-row">
+      <button type="button" class="btn-tiny" data-testid="tiny-action">小目标</button>
+    </section>
+
+    <!-- INTENTIONAL Phase 1: overlapping interactive elements -->
+    <section class="overlap-stage" data-testid="overlap-stage">
+      <button type="button" class="overlap-a" data-testid="overlap-a">A</button>
+      <button type="button" class="overlap-b" data-testid="overlap-b">B</button>
+    </section>
+
+    <!-- INTENTIONAL Phase 1: zero-size interactive node -->
+    <button type="button" class="zero-btn" data-testid="zero-btn">hidden</button>
   </main>
 
   <footer>
