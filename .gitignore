@@ -1,4 +1,4 @@
-﻿# macOS / Windows
+# macOS / Windows
 .DS_Store
 Thumbs.db
 
@@ -26,3 +26,4 @@ dist/
 .vscode/
 *.log
 *.tmp
+.playwright-mcp/
