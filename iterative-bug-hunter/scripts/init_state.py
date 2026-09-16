@@ -13,7 +13,7 @@ from typing import Any
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
     "skill": "iterative-bug-hunter",
-    "phase": 1,
+    "phase": 2,
     "mode": "hunt-and-fix",
     "created_at": None,
     "updated_at": None,
@@ -30,7 +30,7 @@ DEFAULT_STATE: dict[str, Any] = {
             "auth": {"mode": "none"},
             "degrade_level": "L1",
         },
-        "canvas": {"kind": "scene-json", "items": []},
+        "canvas": {"kind": "scene-json", "items": [], "export_target": None},
     },
     "visual_oracle": {
         "min_contrast": 4.5,
@@ -44,6 +44,12 @@ DEFAULT_STATE: dict[str, Any] = {
         "overlap_ratio": 0.2,
         "line_height_min_ratio": 1.2,
         "visual_diff_threshold": 0.01,
+        "safe_inset_pct": 5.0,
+        "z_order_min_coverage": 0.98,
+        "low_res_max_ratio": 2.0,
+        "aspect_distort_tol": 0.02,
+        "ux_empty_state_attr": "data-empty-state",
+        "vlm_min_agreement": 2,
     },
     "budget": {
         "max_runs": 20,
@@ -60,6 +66,11 @@ DEFAULT_STATE: dict[str, Any] = {
     "concurrency": {
         "writer": "main-agent-only",
         "lock_file": ".bug-hunter/.lock",
+        "subagent_write_roots": [
+            "runs/*/captures",
+            "runs/*/captures/shard-*",
+            "runs/*/findings/raw",
+        ],
     },
     "stats": {
         "confirmed_total": 0,
@@ -164,6 +175,8 @@ def init_state(
     modalities: list[str] | None = None,
     quiet_streak: int | None = None,
     force: bool = False,
+    canvas_items: list[str] | None = None,
+    export_target: str | None = None,
 ) -> dict[str, Any]:
     ensure_tree(root)
     state_path = root / ".bug-hunter" / "state.json"
@@ -200,6 +213,30 @@ def init_state(
         if quiet_streak is not None:
             patch["convergence"] = {"quiet_streak": quiet_streak, "required_quiet_streak": 2}
             patch["quiet_streak"] = quiet_streak
+
+        canvas_surface: dict[str, Any] = {}
+        if canvas_items:
+            items = []
+            for path_str in canvas_items:
+                pth = Path(path_str)
+                items.append(
+                    {
+                        "id": pth.stem.replace(".scene", ""),
+                        "kind": "scene-json",
+                        "source": str(pth),
+                    }
+                )
+            canvas_surface["items"] = items
+            modalities_set = set(patch.get("modalities_enabled") or state.get("modalities_enabled") or [])
+            modalities_set.add("canvas")
+            patch["modalities_enabled"] = sorted(modalities_set)
+        if export_target:
+            canvas_surface["export_target"] = export_target
+        if canvas_surface:
+            patch["surfaces"] = merge_state(
+                patch.get("surfaces") or {},
+                {"canvas": canvas_surface},
+            )
 
         if patch:
             state = merge_state(state, patch)
@@ -256,6 +293,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="print resume summary JSON from existing state.json",
     )
+    p.add_argument(
+        "--canvas-item",
+        action="append",
+        dest="canvas_items",
+        help="repeatable path to canvas scene json / item file",
+    )
+    p.add_argument("--export-target", dest="export_target", help="canvas export target WxH")
     return p.parse_args(argv)
 
 
@@ -275,6 +319,8 @@ def main(argv: list[str] | None = None) -> int:
             modalities=args.modalities,
             quiet_streak=args.quiet_streak,
             force=args.force,
+            canvas_items=args.canvas_items,
+            export_target=args.export_target,
         )
         print(json.dumps({"ok": True, "root": str(root), "state": state}, ensure_ascii=False, indent=2))
         return 0

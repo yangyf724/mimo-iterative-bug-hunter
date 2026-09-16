@@ -1,0 +1,53 @@
+{
+  "id": "poster",
+  "kind": "scene-json",
+  "export_size": "800x600",
+  "spec": {
+    "safe_inset_pct": 5,
+    "export_target": "1080x1920"
+  },
+  "objects": [
+    {
+      "id": "title",
+      "type": "text",
+      "x": 10,
+      "y": 2,
+      "w": 300,
+      "h": 48,
+      "zIndex": 2,
+      "text": "海报标题越界",
+      "opacity": 1
+    },
+    {
+      "id": "bg",
+      "type": "shape",
+      "x": 0,
+      "y": 0,
+      "w": 800,
+      "h": 600,
+      "zIndex": 3,
+      "opacity": 1
+    },
+    {
+      "id": "cta",
+      "type": "cta",
+      "x": 40,
+      "y": 480,
+      "w": 120,
+      "h": 40,
+      "zIndex": 1,
+      "primary": true,
+      "opacity": 1
+    }
+  ],
+  "assets": [
+    {
+      "id": "hero-photo",
+      "path": "hero.png",
+      "display_w": 200,
+      "display_h": 200,
+      "pixel_w": 80,
+      "pixel_h": 120
+    }
+  ]
+}

@@ -100,6 +100,10 @@ def normalize_element(raw: dict[str, Any], *, route: str, viewport: str) -> dict
         "text": raw.get("text") or "",
         "depth": int(raw.get("depth") or 0),
         "inViewport": bool(raw.get("inViewport", True)),
+        "href": raw.get("href"),
+        "role": raw.get("role"),
+        "type": raw.get("type"),
+        "attrs": raw.get("attrs") or {},
     }
 
 
@@ -119,6 +123,196 @@ def default_manifest(
         "backend": backend,
         "items": items,
         "captured_at": utc_now(),
+    }
+
+
+def parse_shard(spec: str | None) -> tuple[int, int] | None:
+    """Parse 'i/n' shard spec. Returns (index, total) 0-based or None."""
+    if not spec:
+        return None
+    text = str(spec).strip()
+    if "/" not in text:
+        raise ValueError(f"invalid shard {spec!r}, expected INDEX/TOTAL e.g. 0/2")
+    left, _, right = text.partition("/")
+    try:
+        index = int(left)
+        total = int(right)
+    except ValueError as e:
+        raise ValueError(f"invalid shard {spec!r}, expected INDEX/TOTAL e.g. 0/2") from e
+    if total <= 0 or index < 0 or index >= total:
+        raise ValueError(f"shard index out of range: {spec!r}")
+    return index, total
+
+
+def assign_shard_cells(
+    cells: list[dict[str, str]],
+    index: int,
+    total: int,
+) -> list[dict[str, str]]:
+    """Deterministic round-robin assignment of matrix cells to a shard."""
+    if total <= 1:
+        return list(cells)
+    return [cell for i, cell in enumerate(cells) if i % total == index]
+
+
+def shard_dir_name(index: int) -> str:
+    return f"shard-{index}"
+
+
+def merge_shard_manifests(
+    captures_dir: Path,
+    *,
+    out_name: str = "MANIFEST.json",
+) -> dict[str, Any]:
+    """Merge MANIFEST.shard-*.json under captures_dir into a root MANIFEST.json.
+
+    Copies referenced artifact files from shard-* subdirs into captures_dir.
+    Prefers status=ok; on conflict keeps the item whose elements file mtime is newer.
+    Does not touch state.json / fingerprints.json.
+    """
+    shard_paths = sorted(captures_dir.glob("MANIFEST.shard-*.json"))
+    if not shard_paths:
+        # also accept shard-*/MANIFEST.shard-*.json layout
+        shard_paths = sorted(captures_dir.glob("shard-*/MANIFEST.shard-*.json"))
+    if not shard_paths:
+        manifest = default_manifest(
+            base_url="",
+            routes=[],
+            viewports=[],
+            backend="unavailable",
+            items=[],
+        )
+        manifest["error"] = "no shard manifests found"
+        write_manifest(captures_dir / out_name, manifest)
+        return {"ok": False, "manifest": manifest, "merged_from": []}
+
+    merged_from: list[str] = []
+    by_cell: dict[tuple[str, str], dict[str, Any]] = {}
+    conflicts: list[dict[str, Any]] = []
+    base_url = ""
+    routes: list[str] = []
+    viewports: list[str] = []
+    backends: list[str] = []
+
+    def artifact_mtime(shard_root: Path, item: dict[str, Any]) -> float:
+        rel = item.get("elements_json")
+        if not rel:
+            return 0.0
+        path = shard_root / str(rel)
+        try:
+            return path.stat().st_mtime
+        except OSError:
+            return 0.0
+
+    for sp in shard_paths:
+        try:
+            with sp.open("r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except Exception:
+            continue
+        try:
+            rel_name = str(sp.relative_to(captures_dir))
+        except ValueError:
+            rel_name = sp.name
+        merged_from.append(rel_name)
+        base_url = base_url or data.get("base_url") or ""
+        for r in data.get("routes") or []:
+            if r not in routes:
+                routes.append(r)
+        for v in data.get("viewports") or []:
+            if v not in viewports:
+                viewports.append(v)
+        if data.get("backend"):
+            backends.append(str(data.get("backend")))
+        shard_root = sp.parent
+        # If manifest lives at shard-X/MANIFEST.shard-Y.json, artifacts are in that dir
+        for item in data.get("items") or []:
+            key = (str(item.get("route")), str(item.get("viewport")))
+            existing = by_cell.get(key)
+            new_item = dict(item)
+            new_item["shard"] = shard_root.name if shard_root.name.startswith("shard-") else sp.stem
+            # Rewrite artifact paths to shard-relative for copy step
+            new_item["_shard_root"] = str(shard_root)
+            new_item["_mtime"] = artifact_mtime(shard_root, item)
+            if existing is None:
+                by_cell[key] = new_item
+                continue
+            # Prefer ok over non-ok; then newer mtime
+            existing_ok = existing.get("status") == "ok"
+            new_ok = new_item.get("status") == "ok"
+            prefer_new = False
+            if new_ok and not existing_ok:
+                prefer_new = True
+            elif new_ok == existing_ok and new_item.get("_mtime", 0) > existing.get("_mtime", 0):
+                prefer_new = True
+            if prefer_new:
+                conflicts.append(
+                    {
+                        "route": key[0],
+                        "viewport": key[1],
+                        "kept": new_item.get("shard"),
+                        "dropped": existing.get("shard"),
+                    }
+                )
+                by_cell[key] = new_item
+            else:
+                conflicts.append(
+                    {
+                        "route": key[0],
+                        "viewport": key[1],
+                        "kept": existing.get("shard"),
+                        "dropped": new_item.get("shard"),
+                    }
+                )
+
+    items: list[dict[str, Any]] = []
+    for key in sorted(by_cell.keys(), key=lambda k: (k[0] or "", k[1] or "")):
+        item = by_cell[key]
+        shard_root = Path(item.pop("_shard_root", str(captures_dir)))
+        item.pop("_mtime", None)
+        # Copy artifacts into captures root (Windows-friendly; no symlink requirement)
+        for field in ("viewport_png", "full_png", "elements_json", "console_json", "ax_json"):
+            rel = item.get(field)
+            if not rel:
+                continue
+            src = shard_root / str(rel)
+            if not src.exists():
+                item[field] = None
+                continue
+            dest = captures_dir / str(rel)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if src.resolve() != dest.resolve():
+                import shutil
+
+                shutil.copy2(src, dest)
+        items.append(item)
+
+    backend = "unavailable"
+    for b in backends:
+        if b and b != "unavailable":
+            backend = b
+            break
+    if backends and all(b == "unavailable" for b in backends):
+        backend = "unavailable"
+
+    manifest = default_manifest(
+        base_url=base_url,
+        routes=routes,
+        viewports=viewports,
+        backend=backend,
+        items=items,
+    )
+    manifest["merged_from"] = merged_from
+    if conflicts:
+        manifest["conflicts"] = conflicts
+    write_manifest(captures_dir / out_name, manifest)
+    return {
+        "ok": backend != "unavailable" and any(i.get("status") == "ok" for i in items),
+        "backend": backend,
+        "items": items,
+        "merged_from": merged_from,
+        "conflicts": conflicts,
+        "manifest": manifest,
     }
 
 
@@ -242,6 +436,15 @@ async function main() {
         text: (el.innerText || el.textContent || '').trim().slice(0, 200),
         depth: depthOf(el),
         inViewport: rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth,
+        href: el.getAttribute('href'),
+        role: el.getAttribute('role'),
+        type: el.getAttribute('type'),
+        attrs: {
+          'data-testid': el.getAttribute('data-testid'),
+          'data-list-empty': el.getAttribute('data-list-empty'),
+          'data-empty-state': el.getAttribute('data-empty-state'),
+          'data-feedback': el.getAttribute('data-feedback'),
+        },
       });
     }
     let ax = null;
@@ -537,6 +740,7 @@ def run_capture(
     run_id: str,
     timeout_ms: int,
     backend_force: str | None = None,
+    shard: str | None = None,
 ) -> dict[str, Any]:
     from_state = load_state_routes(root)
     base = base_url or from_state.get("base_url") or "http://127.0.0.1:5173"
@@ -545,7 +749,14 @@ def run_capture(
     out_dir = out or (root / ".bug-hunter" / "runs" / run_id / "captures")
     out_dir.mkdir(parents=True, exist_ok=True)
     cells = expand_matrix(route_list, vp_list)
+    shard_spec = parse_shard(shard) if shard else None
+    if shard_spec:
+        s_index, s_total = shard_spec
+        cells = assign_shard_cells(cells, s_index, s_total)
+        out_dir = out_dir / shard_dir_name(s_index)
+        out_dir.mkdir(parents=True, exist_ok=True)
     backend = backend_force or detect_backend()
+    manifest_name = f"MANIFEST.shard-{shard_spec[0]}.json" if shard_spec else "MANIFEST.json"
 
     if backend == "unavailable":
         manifest = default_manifest(
@@ -559,7 +770,9 @@ def run_capture(
             "No Playwright backend. Use playwright-mcp per capture-protocol.md, "
             "then run layout_probe/contrast_probe on collected elements.json."
         )
-        write_manifest(out_dir / "MANIFEST.json", manifest)
+        if shard_spec:
+            manifest["shard"] = {"index": shard_spec[0], "total": shard_spec[1], "cells": len(cells)}
+        write_manifest(out_dir / manifest_name, manifest)
         return {"ok": False, "exit": EXIT_NO_BROWSER, "backend": "unavailable", "manifest": manifest}
 
     if backend == "python-playwright":
@@ -572,7 +785,7 @@ def run_capture(
         )
     else:
         write_manifest(
-            out_dir / "MANIFEST.json",
+            out_dir / manifest_name,
             default_manifest(
                 base_url=base,
                 routes=route_list,
@@ -593,7 +806,9 @@ def run_capture(
     )
     if errors:
         manifest["errors"] = errors
-    write_manifest(out_dir / "MANIFEST.json", manifest)
+    if shard_spec:
+        manifest["shard"] = {"index": shard_spec[0], "total": shard_spec[1], "cells": len(cells)}
+    write_manifest(out_dir / manifest_name, manifest)
     return {
         "ok": ok,
         "exit": EXIT_OK if ok else EXIT_CAPTURE_FAIL,
@@ -601,6 +816,7 @@ def run_capture(
         "out": str(out_dir),
         "items": items,
         "errors": errors,
+        "shard": manifest.get("shard"),
         "manifest": manifest,
     }
 
@@ -615,12 +831,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--run-id", default="run-1")
     p.add_argument("--timeout-ms", type=int, default=20000)
     p.add_argument("--backend", choices=["python-playwright", "node-playwright", "unavailable"])
+    p.add_argument(
+        "--shard",
+        help="optional INDEX/TOTAL (e.g. 0/2) — capture only this matrix shard into shard-I/",
+    )
+    p.add_argument(
+        "command",
+        nargs="?",
+        default="capture",
+        choices=["capture", "merge"],
+        help="capture (default) or merge shard manifests",
+    )
+    p.add_argument("--captures", help="captures dir for merge (default runs/run-id/captures)")
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = Path(args.root).resolve()
+    if args.command == "merge":
+        captures = Path(args.captures).resolve() if args.captures else (
+            root / ".bug-hunter" / "runs" / args.run_id / "captures"
+        )
+        result = merge_shard_manifests(captures)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return EXIT_OK if result.get("ok") else EXIT_CAPTURE_FAIL
     out = Path(args.out).resolve() if args.out else None
     result = run_capture(
         root=root,
@@ -631,6 +866,7 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         timeout_ms=args.timeout_ms,
         backend_force=args.backend,
+        shard=args.shard,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return int(result.get("exit", EXIT_CAPTURE_FAIL))

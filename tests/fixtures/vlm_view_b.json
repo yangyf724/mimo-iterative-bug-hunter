@@ -1,0 +1,33 @@
+{
+  "view": "B",
+  "perspective": "空状态/错误反馈/可点性/死路",
+  "screenshot": "fixtures/home__375x812__viewport.png",
+  "route": "/",
+  "viewport": "375x812",
+  "inferred_oracle": true,
+  "candidates": [
+    {
+      "title": "primary CTA overflow clipped",
+      "problem": "提交按钮在 375px 下被裁切，难以点击",
+      "confidence": 0.8,
+      "location": {
+        "route": "/",
+        "viewport": "375x812",
+        "selector": "[data-testid=primary-cta]",
+        "bbox": {"x": 298, "y": 618, "w": 122, "h": 50}
+      },
+      "category": "ui-layout"
+    },
+    {
+      "title": "提交后没有错误提示",
+      "problem": "空表单提交缺少 error banner",
+      "confidence": 0.75,
+      "location": {
+        "route": "/",
+        "viewport": "375x812",
+        "selector": "[data-testid=flow-submit]"
+      },
+      "category": "ui-ux-flow"
+    }
+  ]
+}

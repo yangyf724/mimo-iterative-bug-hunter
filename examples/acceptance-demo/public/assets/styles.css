@@ -154,3 +154,20 @@ footer {
   overflow: hidden;
   opacity: 0;
 }
+
+/* Phase 2 demo helpers */
+.nav-extra {
+  margin: 16px 0;
+}
+
+.flow-form {
+  margin: 16px 0;
+}
+
+.item-list {
+  min-height: 48px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  border: 1px dashed #cbd5e1;
+}

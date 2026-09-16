@@ -13,10 +13,12 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import capture_web  # noqa: E402
+import canvas_probe  # noqa: E402
 import converge_check as cc  # noqa: E402
 import contrast_probe  # noqa: E402
 import fingerprint as fp  # noqa: E402
 import layout_probe as lp  # noqa: E402
+import ux_flow  # noqa: E402
 
 
 def utc_now() -> str:
@@ -179,6 +181,8 @@ def run_hunt_round(
     dynamic_cmd: str | None = None,
     write_candidates: bool = False,
     strategies: list[str] | None = None,
+    flows: Path | None = None,
+    canvas_items: Path | None = None,
 ) -> dict[str, Any]:
     state = load_state(root)
     web = (state.get("surfaces") or {}).get("web") or {}
@@ -241,6 +245,89 @@ def run_hunt_round(
         # Consuming real capture cells implies web-visual was exercised this round.
         if degrade in ("L0", "L1"):
             degrade = "L2"
+        # Phase 2: static ux rules (+ optional symbolic flows) whenever cells exist.
+        # Strategy id `ux-flow` is L4-gated for quiet coverage, but static rules are
+        # still valuable at L2/L3 — run them and credit the id only when L4 allows
+        # or when flows were explicitly supplied.
+        ux_result = ux_flow.run_ux_on_manifest(
+            manifest_path=manifest_path,
+            flows_dir=flows,
+            oracle=oracle,
+        )
+        ux_findings = ux_result.get("findings") or []
+        findings.extend(ux_findings)
+        if (
+            cc.degrade_allows_strategy(degrade, "ux-flow")
+            or flows is not None
+            or ux_findings
+        ):
+            if "ux-flow" not in used_strategies:
+                used_strategies.append("ux-flow")
+
+    # Phase 2: canvas probe when items available and degrade allows
+    canvas_cfg = (state.get("surfaces") or {}).get("canvas") or {}
+    canvas_items_path = canvas_items
+    raw_canvas_items = canvas_cfg.get("items") or []
+    canvas_findings: list[dict[str, Any]] = []
+    canvas_scanned = False
+    if canvas_items_path is None and raw_canvas_items:
+        # Prefer explicit --canvas-items; else load from state sources
+        loaded: list[dict[str, Any]] = []
+        for item in raw_canvas_items:
+            if not isinstance(item, dict):
+                continue
+            src = item.get("source")
+            if src:
+                src_path = Path(src)
+                if not src_path.is_absolute():
+                    src_path = root / src
+                if src_path.exists():
+                    loaded_from = canvas_probe.load_items_from_path(src_path)
+                    if loaded_from:
+                        merged = loaded_from[0]
+                        merged["id"] = item.get("id") or merged.get("id")
+                        merged["export_target"] = (
+                            item.get("export_target")
+                            or canvas_cfg.get("export_target")
+                            or merged.get("export_target")
+                        )
+                        loaded.append(merged)
+                        continue
+            loaded.append(canvas_probe.normalize_item(item))
+        if loaded:
+            canvas_scanned = True
+            if "canvas" not in modalities:
+                modalities = list(modalities) + ["canvas"]
+            canvas_result = canvas_probe.run_canvas_items(
+                loaded,
+                export_target=canvas_cfg.get("export_target"),
+                oracle=oracle,
+            )
+            canvas_findings = canvas_result.get("findings") or []
+    elif canvas_items_path is not None:
+        items = canvas_probe.load_items_from_path(Path(canvas_items_path))
+        if items:
+            canvas_scanned = True
+            if "canvas" not in modalities:
+                modalities = list(modalities) + ["canvas"]
+            canvas_result = canvas_probe.run_canvas_items(
+                items,
+                export_target=canvas_cfg.get("export_target"),
+                oracle=oracle,
+            )
+            canvas_findings = canvas_result.get("findings") or []
+
+    canvas_elevated = None
+    if canvas_scanned:
+        findings.extend(canvas_findings)
+        # L4 = L3 + canvas. Elevate only from L3 when canvas items were scanned.
+        if degrade == "L3":
+            degrade = "L4"
+            canvas_elevated = "canvas-items"
+        if cc.degrade_allows_strategy(degrade, "canvas-safe"):
+            for sid in ("canvas-safe", "canvas-asset"):
+                if sid not in used_strategies:
+                    used_strategies.append(sid)
 
     if dynamic_cmd:
         if "dynamic" not in used_strategies:
@@ -279,8 +366,11 @@ def run_hunt_round(
             "convergence": conv,
             "capture_backend": (capture_result or {}).get("backend"),
             "captured_at": utc_now(),
+            "phase": 2,
         }
     )
+    if canvas_elevated:
+        summary["degrade_elevated_by"] = canvas_elevated
     save_json(root / ".bug-hunter" / "runs" / run_id / "summary.json", summary)
     return summary
 
@@ -293,6 +383,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--captures", default=None)
     p.add_argument("--dynamic-cmd", default=None)
     p.add_argument("--write-candidates", action="store_true")
+    p.add_argument("--flows", help="directory of ux-flow JSON files")
+    p.add_argument("--canvas-items", dest="canvas_items", help="canvas items JSON file or dir")
     return p.parse_args(argv)
 
 
@@ -307,6 +399,8 @@ def main(argv: list[str] | None = None) -> int:
         captures=captures,
         dynamic_cmd=args.dynamic_cmd,
         write_candidates=args.write_candidates,
+        flows=Path(args.flows).resolve() if args.flows else None,
+        canvas_items=Path(args.canvas_items).resolve() if args.canvas_items else None,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0

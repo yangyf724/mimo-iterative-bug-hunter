@@ -45,6 +45,19 @@
 
     <!-- INTENTIONAL Phase 1: zero-size interactive node -->
     <button type="button" class="zero-btn" data-testid="zero-btn">hidden</button>
+
+    <!-- INTENTIONAL Phase 2: dead link -->
+    <p class="nav-extra">
+      <a href="#" data-testid="dead-link">占位死链</a>
+    </p>
+
+    <!-- INTENTIONAL Phase 2: submit without error/toast sink (missing-feedback + flow) -->
+    <section class="flow-form" data-testid="flow-form">
+      <button type="submit" class="btn btn-primary" data-testid="flow-submit">提交</button>
+    </section>
+
+    <!-- INTENTIONAL Phase 2: list expects empty-state when empty -->
+    <ul class="item-list" data-list-empty="expected" data-testid="empty-list"></ul>
   </main>
 
   <footer>
