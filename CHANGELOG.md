@@ -7,21 +7,29 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-17
+
+### 摘要
+Phase 3 工程化：路由自动发现、误报白名单、machine-readable 导出、baseline/axe CI 门禁，以及第二验收 demo，证明 skill 不绑定单一项目路径。
+
 ### Added
 - `iterative-bug-hunter/scripts/discover_routes.py` — seed/package.json/sitemap/HTML 同源路由发现与 state 合并 → 开箱可扫多页站
-- `iterative-bug-hunter/scripts/fp_feedback.py` — rejected→FP 模式库、hunt suppress、AGENTS snippet 生成（不改用户 AGENTS.md）
-- `iterative-bug-hunter/scripts/export_report.py` — schema_version=1 machine-readable report.json
-- `iterative-bug-hunter/scripts/baseline_lock.py` — 基线 sha256 锁与 approvals 对账
+- `iterative-bug-hunter/scripts/fp_feedback.py` — rejected→FP 模式库、hunt/probe suppress、AGENTS snippet 生成（不改用户 AGENTS.md）
+- `iterative-bug-hunter/scripts/export_report.py` — schema_version=1 machine-readable report.json → CI/下游可稳定消费
+- `iterative-bug-hunter/scripts/baseline_lock.py` — 基线 sha256 锁；approvals 必须匹配当前 hash，避免历史批准永久解锁
 - `iterative-bug-hunter/scripts/axe_gate.py` — 可选 axe-core 门禁；unavailable 不假装通过
 - `iterative-bug-hunter/scripts/ci_gate.py` + `.github/workflows/ci.yml` — 本地/CI 同一编排入口
-- `examples/second-project/` — 第二验收 demo（泛化 DoD）
+- `examples/second-project/` — 第二验收 demo（`/shop` `/contact` + 不同缺陷组合）→ 泛化 DoD
 - `iterative-bug-hunter/references/route-discovery.md` `fp-feedback.md` `export-schema.md` `ci-gate.md`
-- `tests/test_phase3_scripts.py` — Phase 3 单测
+- `tests/test_phase3_scripts.py` — Phase 3 单测（共 108 tests 全绿）
 
 ### Changed
-- `hunt_round.py` — 应用 FP 白名单，summary 增 `suppressed_count`；phase=3
+- `hunt_round.py` / 四探针 — 支持 `--fp-patterns`；summary 增 `suppressed_count`，suppress 不计入 new
 - `init_state.py` — phase=3、route_discovery/ci/export/fp 默认段
 - `SKILL.md` / `docs/ACCEPTANCE.md` / README — Phase 3 指针与 DoD
+
+### Fixed
+- 独立审查 3 critical：baseline approvals 过宽、路由同优先级字母序、probe 缺 FP 集成 → 已在合并前修复并复审关闭
 
 ## [0.3.0] - 2026-09-17
 
