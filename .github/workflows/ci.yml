@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Fixture E2E
+        run: |
+          python tests/phase1_fixture_e2e.py
+          python tests/phase2_fixture_e2e.py
+      - name: CI gate (no axe)
+        run: python iterative-bug-hunter/scripts/ci_gate.py --root . --skip-axe --out .ci-tmp/ci-gate.json
+      # Optional axe job can be enabled when demo server + axe-core are provisioned:
+      # - run: npm i -D @axe-core/cli
+      # - run: python iterative-bug-hunter/scripts/axe_gate.py --html-file examples/second-project/public/index.html --fail-on violations

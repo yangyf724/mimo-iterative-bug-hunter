@@ -1,0 +1,42 @@
+{
+  "id": "promo-hero",
+  "kind": "scene-json",
+  "export_size": "800x600",
+  "export_target": "1080x1920",
+  "spec": { "safe_inset_pct": 5 },
+  "objects": [
+    {
+      "id": "headline",
+      "type": "text",
+      "x": 10,
+      "y": 8,
+      "w": 300,
+      "h": 40,
+      "zIndex": 2,
+      "text": "季末大促",
+      "opacity": 1
+    },
+    {
+      "id": "cta",
+      "type": "cta",
+      "x": 20,
+      "y": 500,
+      "w": 120,
+      "h": 40,
+      "zIndex": 3,
+      "text": "立即购买",
+      "opacity": 1,
+      "primary": true
+    }
+  ],
+  "assets": [
+    {
+      "id": "hero-bg",
+      "path": "hero-bg.png",
+      "display_w": 800,
+      "display_h": 600,
+      "pixel_w": 300,
+      "pixel_h": 220
+    }
+  ]
+}

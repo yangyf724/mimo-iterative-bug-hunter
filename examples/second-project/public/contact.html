@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>联系 | Northwind</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Northwind</a>
+    <nav>
+      <a href="/">首页</a>
+      <a href="/shop">商店</a>
+      <a href="/contact">联系</a>
+    </nav>
+  </header>
+  <main>
+    <h1>联系我们</h1>
+    <!-- INTENTIONAL: submit present, no error/alert/toast sink -->
+    <form id="contact-form" action="#" method="post">
+      <label>
+        邮箱
+        <input type="email" name="email" required />
+      </label>
+      <label>
+        留言
+        <textarea name="message" required></textarea>
+      </label>
+      <button type="submit" data-testid="contact-submit">提交</button>
+    </form>
+    <!-- INTENTIONAL: tiny icon-only control -->
+    <button class="icon-tiny" type="button" aria-label="折叠">▾</button>
+    <p data-empty-state-note>我们会在 1 个工作日内回复。</p>
+  </main>
+</body>
+</html>

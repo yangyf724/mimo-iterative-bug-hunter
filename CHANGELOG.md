@@ -7,6 +7,22 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `iterative-bug-hunter/scripts/discover_routes.py` — seed/package.json/sitemap/HTML 同源路由发现与 state 合并 → 开箱可扫多页站
+- `iterative-bug-hunter/scripts/fp_feedback.py` — rejected→FP 模式库、hunt suppress、AGENTS snippet 生成（不改用户 AGENTS.md）
+- `iterative-bug-hunter/scripts/export_report.py` — schema_version=1 machine-readable report.json
+- `iterative-bug-hunter/scripts/baseline_lock.py` — 基线 sha256 锁与 approvals 对账
+- `iterative-bug-hunter/scripts/axe_gate.py` — 可选 axe-core 门禁；unavailable 不假装通过
+- `iterative-bug-hunter/scripts/ci_gate.py` + `.github/workflows/ci.yml` — 本地/CI 同一编排入口
+- `examples/second-project/` — 第二验收 demo（泛化 DoD）
+- `iterative-bug-hunter/references/route-discovery.md` `fp-feedback.md` `export-schema.md` `ci-gate.md`
+- `tests/test_phase3_scripts.py` — Phase 3 单测
+
+### Changed
+- `hunt_round.py` — 应用 FP 白名单，summary 增 `suppressed_count`；phase=3
+- `init_state.py` — phase=3、route_discovery/ci/export/fp 默认段
+- `SKILL.md` / `docs/ACCEPTANCE.md` / README — Phase 3 指针与 DoD
+
 ## [0.3.0] - 2026-09-17
 
 ### 摘要

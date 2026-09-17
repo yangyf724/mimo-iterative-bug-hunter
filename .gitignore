@@ -27,3 +27,4 @@ dist/
 *.log
 *.tmp
 .playwright-mcp/
+.ci-tmp/

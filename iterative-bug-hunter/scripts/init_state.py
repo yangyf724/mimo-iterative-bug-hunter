@@ -13,7 +13,7 @@ from typing import Any
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
     "skill": "iterative-bug-hunter",
-    "phase": 2,
+    "phase": 3,
     "mode": "hunt-and-fix",
     "created_at": None,
     "updated_at": None,
@@ -29,8 +29,27 @@ DEFAULT_STATE: dict[str, Any] = {
             "viewports": ["375x812", "1440x900"],
             "auth": {"mode": "none"},
             "degrade_level": "L1",
+            "route_discovery": {
+                "enabled": True,
+                "max_routes": 12,
+                "sources": ["seed", "package.json", "sitemap", "html-links"],
+                "last_run": None,
+            },
         },
         "canvas": {"kind": "scene-json", "items": [], "export_target": None},
+    },
+    "ci": {
+        "axe_backend": "auto",
+        "baseline_lock": True,
+        "fail_on_axe": False,
+    },
+    "export": {
+        "path": "export/report.json",
+        "schema_version": 1,
+    },
+    "fp": {
+        "patterns_path": "fp_patterns.json",
+        "default_match": "selector+rule+route",
     },
     "visual_oracle": {
         "min_contrast": 4.5,
