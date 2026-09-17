@@ -1,4 +1,4 @@
-# Phase 0 / Phase 1 / Phase 2 验收 DoD
+# Phase 0 / Phase 1 / Phase 2 / Phase 3 验收 DoD
 
 锁定验收项目：`examples/acceptance-demo/`（零依赖 Node 静态站，2 路由）。
 
@@ -61,6 +61,34 @@ npm start
 | 7 | demo 注入 | 死链、无反馈 submit、空列表、canvas 场景、flows 在非 ignore 路径 | **PASS** — `index.html` + `canvas/poster.scene.json` + `flows/empty-submit.json` |
 | 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 88 tests OK（含 stub-canvas 不升 L4、z-order 并集） |
 
+## Phase 3 DoD 勾选表
+
+第二验收项目：`examples/second-project/`（端口 5174，路由 `/` `/shop` `/contact`）。
+
+| # | 检查项 | 通过标准 | 状态 |
+|---|--------|----------|------|
+| 1 | 路由发现 | HTML/package.json 能列出 `/shop` `/contact`；`--write` 合并 state | **PASS** — TestDiscoverRoutes |
+| 2 | FP 白名单 | absorb 后同 finding suppress；summary 不计入 new | **PASS** — TestFpFeedback + hunt 集成 |
+| 3 | JSON 导出 | `export_report.py` 产出 schema_version=1 且 validate 通过 | **PASS** — TestExportReport |
+| 4 | baseline lock | snapshot/verify/approvals/no-lock 路径 | **PASS** — TestBaselineLock |
+| 5 | axe 降级 | 无 axe 时 `status=unavailable`，不假装通过 | **PASS** — TestAxeGate |
+| 6 | ci_gate | unittest 步骤可编排并输出 JSON | **PASS** — TestCiGateImport + 本地 ci_gate |
+| 7 | second-project 泛化 | 注入 overflow/dead-link/missing-feedback/touch-target/contrast/code/canvas 缺陷；非 demo 路径 | **PASS** — HTML/CSS/JS/canvas/flows |
+| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 108 tests OK |
+
+### second-project 注入缺陷
+
+| 缺陷 | 期望 rule_id |
+|------|--------------|
+| `/shop` 商品栅格 min-width 过宽 | `overflow-x` @ 375x812 |
+| `/shop` `href="#"` 心愿单 | `dead-link` |
+| `/contact` submit 无 alert/error sink | `missing-feedback` |
+| `/contact` 20×20 图标按钮 | `touch-target` @ 375x812 |
+| `/` `.helper-note` 低对比 | `contrast-text` |
+| `src/checkout.js` coupon off-by-one | dynamic `npm test` |
+| `canvas/promo.scene.json` 安全区 + 导出尺寸 | `safe-area-violation` / `export-mismatch` |
+| `flows/contact-submit.json` | `ux-flow-step` |
+
 ## 本地验收脚本（agent 执行）
 
 1. `& $env:MIMO_PYTHON -m unittest discover -s tests -v`
@@ -76,3 +104,4 @@ npm start
 - Phase 0：init_state / fingerprint / converge / layout overflow-x / validate_report / lock
 - Phase 1：capture 矩阵与降级、layout 全规则、contrast、visual_diff、fix_gate、hunt_round 编排
 - Phase 2：ux_flow / canvas_probe / vlm_audit / capture shard+merge / hunt_round 集成
+- Phase 3：discover_routes / fp_feedback / export_report / baseline_lock / axe_gate / ci_gate

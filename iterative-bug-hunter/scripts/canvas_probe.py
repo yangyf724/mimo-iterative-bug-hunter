@@ -546,6 +546,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--safe-inset-pct", type=float, default=None)
     p.add_argument("--rules", help="comma-separated rule ids")
     p.add_argument("--out", help="write findings JSON to this path")
+    p.add_argument(
+        "--fp-patterns",
+        dest="fp_patterns",
+        default=None,
+        help="optional FP whitelist JSON; matching findings get status=suppressed",
+    )
     return p.parse_args(argv)
 
 
@@ -602,6 +608,14 @@ def main(argv: list[str] | None = None) -> int:
     else:
         result = run_canvas_items(items, export_target=args.export_target, oracle=oracle)
         result["ok"] = True
+
+    if args.fp_patterns:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import fp_feedback as fpf  # noqa: PLC0415
+
+        findings, hits = fpf.apply_patterns_path(result.get("findings") or [], Path(args.fp_patterns))
+        result["findings"] = findings
+        result["suppressed_count"] = len(hits)
 
     if args.out:
         out_path = Path(args.out)

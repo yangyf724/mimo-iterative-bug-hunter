@@ -1,0 +1,80 @@
+/* Northwind second-project styles — intentional defects marked in HTML */
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0 16px 40px;
+  color: #1f2937;
+  background: #fff;
+}
+
+.site-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 12px;
+}
+
+.logo {
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #0f766e;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  border: 0;
+}
+
+/* INTENTIONAL: wide fixed grid causes overflow-x at 375px */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 280px);
+  gap: 12px;
+  min-width: 900px;
+}
+
+.product-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* INTENTIONAL: low contrast helper text */
+.helper-note {
+  color: #b0b7bf;
+  font-size: 13px;
+}
+
+/* INTENTIONAL: touch target below 44px */
+.icon-tiny {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #9ca3af;
+  background: #f9fafb;
+  line-height: 1;
+  font-size: 12px;
+}
+
+form label {
+  display: block;
+  margin-bottom: 12px;
+}
+
+form input,
+form textarea {
+  display: block;
+  width: min(100%, 420px);
+  margin-top: 4px;
+}

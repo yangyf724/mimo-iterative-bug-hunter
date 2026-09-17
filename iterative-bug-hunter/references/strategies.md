@@ -1,8 +1,10 @@
-# 策略库（Phase 2）
+# 策略库（Phase 3）
 
 modality 仅三值：`code` | `web-visual` | `canvas`。调度与统计用 modality；策略 ID 决定本轮 rule 集。
 
-## Phase 2 策略集
+Phase 3 工程化入口（非 modality 策略，但属于主循环辅助）：`discover_routes.py`、`fp_feedback.py`、`export_report.py`、`baseline_lock.py`、`axe_gate.py`、`ci_gate.py`。
+
+## Phase 2–3 策略集
 
 | ID | modality | 动作 | Oracle | 成本 | 脚本 |
 |----|----------|------|--------|------|------|
@@ -13,7 +15,7 @@ modality 仅三值：`code` | `web-visual` | `canvas`。调度与统计用 modal
 | `contrast-type` | web-visual | contrast-text / font-too-small / line-height-tight | WCAG 公式 | 低 | `contrast_probe.py` |
 | `responsive-matrix` | web-visual | routes×viewports 重复 layout+contrast | 几何/对比度 | 中 | `hunt_round.py` |
 | `visual-diff` | web-visual | 与 baseline 像素 diff | diff_ratio 阈值 | 中 | `visual_diff.py` |
-| `a11y-axe` | web-visual | axe-core（若可安装/npx） | axe 违规 | 低 | agent / MCP |
+| `a11y-axe` | web-visual | axe-core（若可安装/npx） | axe 违规 | 低 | `axe_gate.py` / agent |
 | **`ux-flow`** | web-visual | dead-link / missing-feedback / empty-state + 符号化 pre/post | 静态规则 + flow | 中 | `ux_flow.py` |
 | **`canvas-safe`** | canvas | safe-area / export-mismatch / z-order | 画布几何 | 中 | `canvas_probe.py` |
 | **`canvas-asset`** | canvas | low-res / aspect-distort | 资源元数据 | 低 | `canvas_probe.py` |
@@ -24,10 +26,10 @@ modality 仅三值：`code` | `web-visual` | `canvas`。调度与统计用 modal
 ```powershell
 & $env:MIMO_PYTHON iterative-bug-hunter/scripts/hunt_round.py --root <project> --run-id run-1 `
   [--skip-capture] [--captures DIR] [--dynamic-cmd "npm test"] [--write-candidates] `
-  [--flows DIR] [--canvas-items PATH]
+  [--flows DIR] [--canvas-items PATH] [--fp-patterns PATH]
 ```
 
-步骤：（可选 capture / shard merge）→ probe MANIFEST 全矩阵（layout+contrast+ux 静态）→ 可选 flows / canvas → register 指纹 → `runs/run-N/summary.json` → converge 评估。**不**自动 Confirm/修代码。
+步骤：（可选 capture / shard merge）→ probe MANIFEST 全矩阵（layout+contrast+ux 静态）→ 可选 flows / canvas → **FP 白名单 suppress** → register 指纹 → `runs/run-N/summary.json` → converge 评估。**不**自动 Confirm/修代码。suppressed 不计入 `new_count`。
 
 ## 轮换规则
 

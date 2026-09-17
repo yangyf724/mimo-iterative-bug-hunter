@@ -13,7 +13,7 @@ description: >
 
 # Iterative Bug Hunter
 
-对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）+ 画布通道；Phase 2 含 ux-flow 符号化、canvas-safe/asset、vlm-audit 双视角候选与 subagent 分片采集。
+对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）+ 画布通道；Phase 2 含 ux-flow 符号化、canvas-safe/asset、vlm-audit；Phase 3 含路由发现、FP 白名单、machine-readable 导出、baseline/axe CI 门禁。
 
 ## 触发
 
@@ -34,6 +34,8 @@ description: >
 | base_url | 用户 dev server | 无则先尝试探测，失败进 L1 |
 | canvas items | 可选 | `state.surfaces.canvas` 或 `--canvas-items` |
 | flows | 可选 | `.bug-hunter/flows/*.json` 符号化 |
+| route discovery | 开 | `scripts/discover_routes.py`，见 [`references/route-discovery.md`](references/route-discovery.md) |
+| fp patterns | 可选 | `.bug-hunter/fp_patterns.json`，见 [`references/fp-feedback.md`](references/fp-feedback.md) |
 | K | 2 | `required_quiet_streak` |
 | max_runs | 20 | 预算护栏 |
 
@@ -52,15 +54,17 @@ description: >
 ## 主循环
 
 1. **Bootstrap** — `scripts/init_state.py`（已有 `state.json` 则 resume：`--resume-summary`）。
-2. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`；有 canvas items 且 web≥L3 可到 L4。
-3. **Plan** — 选策略集；禁止连续两轮完全相同；quiet_streak≥1 时加压。
-4. **Capture** — L≥2 时 `scripts/capture_web.py`（可 `--shard i/n` + `merge`，见 [`references/subagent-capture.md`](references/subagent-capture.md)；或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
-5. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
-6. **VLM（可选）** — 双视角审图后 `vlm_audit.py merge`，仅 Candidate；见 [`references/vlm-audit.md`](references/vlm-audit.md)。
-7. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed。
-8. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
-9. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
-10. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`。
+2. **Discover（可选）** — `scripts/discover_routes.py` 合并 seed/package/sitemap/HTML 链接。
+3. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`；有 canvas items 且 web≥L3 可到 L4。
+4. **Plan** — 选策略集；禁止连续两轮完全相同；quiet_streak≥1 时加压。
+5. **Capture** — L≥2 时 `scripts/capture_web.py`（可 `--shard i/n` + `merge`，见 [`references/subagent-capture.md`](references/subagent-capture.md)；或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
+6. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → FP 白名单 suppress → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
+7. **VLM（可选）** — 双视角审图后 `vlm_audit.py merge`，仅 Candidate；见 [`references/vlm-audit.md`](references/vlm-audit.md)。
+8. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed；rejected 可 `fp_feedback.py absorb` 沉淀。
+9. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
+10. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
+11. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`；机器视图 `scripts/export_report.py`。
+12. **CI（可选）** — `scripts/ci_gate.py` / baseline lock / axe gate，见 [`references/ci-gate.md`](references/ci-gate.md)。
 
 ### quiet 四条件（K 默认 2）
 
@@ -107,4 +111,6 @@ description: >
 - 无锁覆盖 `state.json`；
 - 未授权页面截图当作 bug；
 - 纯主观审美直接 Confirmed；
-- 静默降级不记 Blind Spots。
+- 静默降级不记 Blind Spots；
+- 把 axe `unavailable` 当成通过；
+- 自动改写用户项目 `AGENTS.md`（只生成 snippet）。

@@ -1,0 +1,21 @@
+{
+  "id": "contact-submit-empty",
+  "route": "/contact",
+  "viewport": "375x812",
+  "symbols": {
+    "submitBtn": "[data-testid=contact-submit]",
+    "errorBanner": "[data-testid=contact-error]",
+    "formValid": false
+  },
+  "steps": [
+    {
+      "action": "click",
+      "target": "submitBtn",
+      "pre": { "formValid": false },
+      "post": {
+        "errorBanner.visible": true
+      }
+    }
+  ],
+  "inferred_oracle": true
+}

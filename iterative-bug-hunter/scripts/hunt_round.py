@@ -17,6 +17,7 @@ import canvas_probe  # noqa: E402
 import converge_check as cc  # noqa: E402
 import contrast_probe  # noqa: E402
 import fingerprint as fp  # noqa: E402
+import fp_feedback as fpf  # noqa: E402
 import layout_probe as lp  # noqa: E402
 import ux_flow  # noqa: E402
 
@@ -183,6 +184,7 @@ def run_hunt_round(
     strategies: list[str] | None = None,
     flows: Path | None = None,
     canvas_items: Path | None = None,
+    fp_patterns: Path | None = None,
 ) -> dict[str, Any]:
     state = load_state(root)
     web = (state.get("surfaces") or {}).get("web") or {}
@@ -381,8 +383,34 @@ def run_hunt_round(
     if not used_strategies:
         used_strategies = ["static"]
 
+    # Phase 3: apply FP whitelist before registration (suppressed still register).
+    patterns_path = fp_patterns or (root / ".bug-hunter" / "fp_patterns.json")
+    suppressed_hits: list[dict[str, Any]] = []
+    if patterns_path.exists():
+        try:
+            fp_store = fpf.load_patterns(patterns_path)
+            findings, suppressed_hits = fpf.apply_patterns(findings, fp_store)
+        except Exception as e:  # noqa: BLE001 — surface pattern corruption, do not silent-skip
+            suppressed_hits = []
+            save_json(
+                root / ".bug-hunter" / "runs" / run_id / "findings" / "fp-apply-error.json",
+                {"error": str(e), "patterns_path": str(patterns_path)},
+            )
+
     fp_path = root / ".bug-hunter" / "fingerprints.json"
     reg = fp.register_fingerprints(findings, fp_path=fp_path, run_id=run_id, now=utc_now())
+    # new_count excludes suppressed so they cannot inflate discovery.
+    new_count = sum(1 for item in reg.get("new") or [] if item.get("status") != "suppressed")
+    known_count = sum(1 for item in reg.get("known") or [] if item.get("status") != "suppressed")
+    reg = dict(reg)
+    reg["new_count"] = new_count
+    reg["known_count"] = known_count
+    reg["duplicate_rate"] = (
+        (reg.get("known_count", 0) + len([i for i in reg.get("known") or [] if i.get("status") == "suppressed"]))
+        / len(findings)
+        if findings
+        else 0.0
+    )
 
     if write_candidates:
         cand_dir = root / ".bug-hunter" / "runs" / run_id / "findings" / "candidates"
@@ -410,7 +438,9 @@ def run_hunt_round(
             "convergence": conv,
             "capture_backend": (capture_result or {}).get("backend"),
             "captured_at": utc_now(),
-            "phase": 2,
+            "phase": 3,
+            "suppressed_count": len(suppressed_hits),
+            "suppressed": suppressed_hits,
         }
     )
     if canvas_elevated:
@@ -429,6 +459,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--write-candidates", action="store_true")
     p.add_argument("--flows", help="directory of ux-flow JSON files")
     p.add_argument("--canvas-items", dest="canvas_items", help="canvas items JSON file or dir")
+    p.add_argument(
+        "--fp-patterns",
+        dest="fp_patterns",
+        default=None,
+        help="FP whitelist JSON (default .bug-hunter/fp_patterns.json)",
+    )
     return p.parse_args(argv)
 
 
@@ -445,6 +481,7 @@ def main(argv: list[str] | None = None) -> int:
         write_candidates=args.write_candidates,
         flows=Path(args.flows).resolve() if args.flows else None,
         canvas_items=Path(args.canvas_items).resolve() if args.canvas_items else None,
+        fp_patterns=Path(args.fp_patterns).resolve() if args.fp_patterns else None,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
