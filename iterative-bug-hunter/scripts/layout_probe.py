@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 ROOT_SELECTORS = {"html", "body", "document", ":root"}
@@ -481,6 +482,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="comma-separated rule ids; default all",
     )
+    p.add_argument(
+        "--fp-patterns",
+        dest="fp_patterns",
+        default=None,
+        help="optional FP whitelist JSON; matching findings get status=suppressed",
+    )
     return p.parse_args(argv)
 
 
@@ -532,7 +539,20 @@ def main(argv: list[str] | None = None) -> int:
         overlap_ratio=overlap,
         rules=rules,
     )
-    print(json.dumps({"findings": findings, "count": len(findings)}, ensure_ascii=False, indent=2))
+    suppressed_count = 0
+    if args.fp_patterns:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import fp_feedback as fpf  # noqa: PLC0415
+
+        findings, hits = fpf.apply_patterns_path(findings, Path(args.fp_patterns))
+        suppressed_count = len(hits)
+    print(
+        json.dumps(
+            {"findings": findings, "count": len(findings), "suppressed_count": suppressed_count},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

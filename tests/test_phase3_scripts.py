@@ -77,6 +77,17 @@ class TestDiscoverRoutes(unittest.TestCase):
         self.assertEqual([r["route"] for r in ranked], ["/seed", "/late"])
         self.assertEqual(ranked[1]["source"], "package.json")
 
+    def test_rank_routes_preserves_document_order(self):
+        ranked = dr.rank_routes(
+            [
+                {"route": "/zeta", "source": "html-links", "priority": 3},
+                {"route": "/alpha", "source": "html-links", "priority": 3},
+                {"route": "/beta", "source": "html-links", "priority": 3},
+            ],
+            max_routes=12,
+        )
+        self.assertEqual([r["route"] for r in ranked], ["/zeta", "/alpha", "/beta"])
+
     def test_write_state_routes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -140,6 +151,13 @@ class TestFpFeedback(unittest.TestCase):
         self.assertFalse(fpf.pattern_matches(dict(sel, route="/about"), f))
         digest = {"match": "digest", "core_assertion_digest": "touch-target|below-min"}
         self.assertTrue(fpf.pattern_matches(digest, f))
+        rule_route = {
+            "match": "rule+route",
+            "rule_id": "touch-target",
+            "route": "/",
+        }
+        self.assertTrue(fpf.pattern_matches(rule_route, f))
+        self.assertFalse(fpf.pattern_matches(dict(rule_route, route="/about"), f))
 
     def test_absorb_and_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -282,6 +300,23 @@ class TestBaselineLock(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertEqual(result["status"], "drift")
 
+            # route×viewport approval WITHOUT matching sha256 must NOT unlock
+            stale = Path(tmp) / "stale-approvals.jsonl"
+            stale.write_text(
+                json.dumps({"route": "/", "viewport": "375x812", "sha256": "deadbeef"}) + "\n",
+                encoding="utf-8",
+            )
+            result = baseline_lock.verify(base, lock, approvals_path=stale)
+            self.assertFalse(result["ok"], "stale sha256 approval must not allow drift")
+
+            path_only = Path(tmp) / "path-approvals.jsonl"
+            path_only.write_text(
+                json.dumps({"file": "home__375x812.png"}) + "\n",
+                encoding="utf-8",
+            )
+            result = baseline_lock.verify(base, lock, approvals_path=path_only)
+            self.assertFalse(result["ok"], "path-only approval without sha256 must not allow drift")
+
             approvals = Path(tmp) / "approvals.jsonl"
             current = baseline_lock.sha256_file(png)
             approvals.write_text(
@@ -290,6 +325,21 @@ class TestBaselineLock(unittest.TestCase):
             )
             result = baseline_lock.verify(base, lock, approvals_path=approvals)
             self.assertTrue(result["ok"])
+
+    def test_strict_unlocked_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / "baselines"
+            base.mkdir()
+            locked = base / "home__375x812.png"
+            locked.write_bytes(b"A")
+            lock = Path(tmp) / "lock.json"
+            baseline_lock.snapshot(base, lock)
+            extra = base / "extra.png"
+            extra.write_bytes(b"B")
+            result = baseline_lock.verify(base, lock, strict=True)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["status"], "unlocked-strict")
+            self.assertIn("extra.png", result["unlocked_files"])
 
     def test_no_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -328,6 +378,66 @@ class TestCiGateImport(unittest.TestCase):
         import ci_gate
 
         self.assertTrue(hasattr(ci_gate, "run_ci"))
+
+
+class TestLayoutProbeFpPatterns(unittest.TestCase):
+    def test_cli_fp_patterns_suppresses(self):
+        import layout_probe
+
+        with tempfile.TemporaryDirectory() as tmp:
+            patterns = Path(tmp) / "fp.json"
+            patterns.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "patterns": [
+                            {
+                                "id": "fp-0001",
+                                "match": "selector+rule+route",
+                                "rule_id": "touch-target",
+                                "route": "/",
+                                "selector_pattern": "[data-testid=btn-tiny]",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            payload = {
+                "route": "/",
+                "viewport": "375x812",
+                "elements": [
+                    {
+                        "selector": "[data-testid=btn-tiny]",
+                        "interactive": True,
+                        "bbox": {"x": 0, "y": 0, "w": 20, "h": 20},
+                        "text": "x",
+                    }
+                ],
+            }
+            import contextlib
+            import io
+
+            buf = io.StringIO()
+            old_stdin = sys.stdin
+            try:
+                sys.stdin = io.StringIO(json.dumps(payload))
+                with contextlib.redirect_stdout(buf):
+                    rc = layout_probe.main(
+                        [
+                            "--viewport-width",
+                            "375",
+                            "--fp-patterns",
+                            str(patterns),
+                        ]
+                    )
+            finally:
+                sys.stdin = old_stdin
+            self.assertEqual(rc, 0)
+            data = json.loads(buf.getvalue())
+            self.assertGreaterEqual(data.get("suppressed_count", 0), 1)
+            statuses = {f.get("status") for f in data.get("findings") or [] if f.get("rule_id") == "touch-target"}
+            self.assertIn("suppressed", statuses)
 
 
 class TestHuntRoundFpSuppress(unittest.TestCase):

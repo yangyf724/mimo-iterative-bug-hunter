@@ -94,23 +94,19 @@ def run_ci(
             }
         )
 
-    # 4. export smoke on temp-like second project if present
+    # 4. export smoke — always validate a synthetic export schema when no project state
     er = SCRIPTS / "export_report.py"
     target = second_root or demo
-    export_root = target
-    if (export_root / ".bug-hunter" / "state.json").exists():
+    if (target / ".bug-hunter" / "state.json").exists():
         add(
             "export_report",
-            _run([py, str(er), "--root", str(export_root)], cwd=root),
+            _run([py, str(er), "--root", str(target)], cwd=root),
         )
     else:
-        # still exercise schema validation path with a synthetic export
-        steps.append(
-            {
-                "name": "export_report",
-                "status": "SKIP",
-                "detail": f"no state.json under {export_root}",
-            }
+        # Always-on schema gate: build/validate from empty tree (must be schema-valid).
+        add(
+            "export_report",
+            _run([py, str(er), "--root", str(root / ".ci-tmp" / "empty-export")], cwd=root),
         )
 
     # 5. optional axe
@@ -121,12 +117,24 @@ def run_ci(
         if html.exists():
             add(
                 "axe_gate",
-                _run([py, str(ag), "--html-file", str(html), "--out", str(root / ".ci-tmp" / "axe")], cwd=root),
+                _run(
+                    [
+                        py,
+                        str(ag),
+                        "--html-file",
+                        str(html),
+                        "--out",
+                        str(root / ".ci-tmp" / "axe"),
+                        "--fail-on",
+                        "violations",
+                    ],
+                    cwd=root,
+                ),
             )
         else:
             steps.append({"name": "axe_gate", "status": "SKIP", "detail": "no second-project html"})
     else:
-        steps.append({"name": "axe_gate", "status": "SKIP", "detail": "--skip-axe"})
+        steps.append({"name": "axe_gate", "status": "SKIP", "detail": "axe disabled (default)"})
 
     ok = all(s["status"] in ("PASS", "SKIP") for s in steps)
     return {
@@ -141,8 +149,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run CI gate steps")
     p.add_argument("--root", default=".")
     p.add_argument("--skip-e2e", action="store_true")
-    p.add_argument("--skip-axe", action="store_true", default=True)
-    p.add_argument("--with-axe", action="store_true", help="enable axe step")
+    p.add_argument(
+        "--with-axe",
+        action="store_true",
+        help="enable axe_gate step (default: disabled — axe is optional)",
+    )
     p.add_argument("--demo-root", default=None)
     p.add_argument("--second-root", default=None)
     p.add_argument("--out", default=None)

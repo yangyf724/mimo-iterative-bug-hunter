@@ -1,7 +1,7 @@
 # 采集协议（Capture Protocol）— Phase 2
 
 1. **环境**：优先 `scripts/capture_web.py`（Playwright Python 或 Node）；不可用时用 playwright-mcp 按本协议手工采集，再跑 probes。
-2. **路由集**：`state.surfaces.web.routes`；默认补全关键链接，设上限。
+2. **路由集**：`state.surfaces.web.routes`；可用 [`route-discovery.md`](route-discovery.md) 的 `discover_routes.py` 从 package.json / sitemap / HTML 链接自动补全，设上限。
 3. **Viewport 矩阵**：至少 `375x812`、`1440x900`。
 4. **每页产物**（写入 `runs/run-N/captures/`）：
 

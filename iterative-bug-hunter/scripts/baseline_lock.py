@@ -80,27 +80,30 @@ def _approval_allows(
     approvals: list[dict[str, Any]],
     rel: str,
     current_hash: str | None,
-    *,
-    route: str | None = None,
-    viewport: str | None = None,
 ) -> bool:
-    # Match by relative path basename stem or route+viewport fields.
+    """Approve drift only when the approval matches this file AND current sha256.
+
+    Spec §4.2: intentional change requires approvals.jsonl entry whose sha256
+    equals the **current** file hash. Path/route matching alone is not enough —
+    otherwise one historical approval permanently unlocks the baseline.
+    """
+    if not current_hash:
+        return False
     stem = Path(rel).stem
     for row in approvals:
-        if current_hash and row.get("sha256") == current_hash:
-            return True
+        if row.get("sha256") != current_hash:
+            continue
+        # Same hash — still require identity of the file/route when provided.
         if row.get("file") == rel or row.get("path") == rel:
             return True
-        # home__375x812 style
-        r = row.get("route") or ""
-        v = row.get("viewport") or ""
+        r = (row.get("route") or "").strip()
+        v = (row.get("viewport") or "").strip()
         if r and v:
             slug_route = r.strip("/").replace("/", "-") or "home"
-            if stem.startswith(f"{slug_route}__") or stem == f"{slug_route}__{v}":
+            if stem == f"{slug_route}__{v}" or stem.endswith(f"__{v}"):
                 return True
-            if f"{slug_route}__{v}" in stem:
-                return True
-        if route and viewport and row.get("route") == route and row.get("viewport") == viewport:
+        if not r and not v and not row.get("file") and not row.get("path"):
+            # hash-only approval applies to whatever file currently has that hash
             return True
     return False
 
@@ -154,7 +157,7 @@ def verify(
     status = "ok" if ok else "drift"
     if missing and not drifted:
         status = "missing"
-    if strict and unlocked and ok:
+    if strict and unlocked and not drifted and not missing:
         status = "unlocked-strict"
         ok = False
     return {

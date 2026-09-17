@@ -33,6 +33,6 @@ python scripts/export_report.py --root .
 python scripts/export_report.py --validate .bug-hunter/export/report.json
 ```
 
-Validate exit `0` when schema checks pass; unknown `schema_version` → exit `3` path is reported in JSON errors (CLI currently returns `1` on any validation failure).
+Validate exit `0` when schema checks pass; unknown `schema_version` → exit `3`; other validation errors → exit `1`.
 
 REPORT.md remains the human document; export is a parallel machine view derived from the same `.bug-hunter` state.

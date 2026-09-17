@@ -553,6 +553,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--flows", help="flows directory")
     p.add_argument("--out", help="write findings JSON")
     p.add_argument("--out-dir", dest="out_dir", help="write per-strategy files")
+    p.add_argument(
+        "--fp-patterns",
+        dest="fp_patterns",
+        default=None,
+        help="optional FP whitelist JSON; matching findings get status=suppressed",
+    )
     return p.parse_args(argv)
 
 
@@ -585,6 +591,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     result["ok"] = True
+    if args.fp_patterns:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import fp_feedback as fpf  # noqa: PLC0415
+
+        findings, hits = fpf.apply_patterns_path(result.get("findings") or [], Path(args.fp_patterns))
+        result["findings"] = findings
+        result["suppressed_count"] = len(hits)
     if args.out:
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)

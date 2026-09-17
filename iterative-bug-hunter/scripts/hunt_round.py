@@ -390,8 +390,12 @@ def run_hunt_round(
         try:
             fp_store = fpf.load_patterns(patterns_path)
             findings, suppressed_hits = fpf.apply_patterns(findings, fp_store)
-        except Exception:
+        except Exception as e:  # noqa: BLE001 — surface pattern corruption, do not silent-skip
             suppressed_hits = []
+            save_json(
+                root / ".bug-hunter" / "runs" / run_id / "findings" / "fp-apply-error.json",
+                {"error": str(e), "patterns_path": str(patterns_path)},
+            )
 
     fp_path = root / ".bug-hunter" / "fingerprints.json"
     reg = fp.register_fingerprints(findings, fp_path=fp_path, run_id=run_id, now=utc_now())

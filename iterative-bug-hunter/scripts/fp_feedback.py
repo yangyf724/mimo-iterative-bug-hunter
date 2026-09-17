@@ -186,6 +186,17 @@ def apply_patterns(
     return marked, hits
 
 
+def apply_patterns_path(
+    findings: list[dict[str, Any]],
+    patterns_path: Path | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load patterns from path (if present) and apply. Missing file → no-op."""
+    if not patterns_path or not Path(patterns_path).exists():
+        return findings, []
+    store = load_patterns(Path(patterns_path))
+    return apply_patterns(findings, store)
+
+
 def _next_id(store: dict[str, Any]) -> str:
     n = 1
     existing = {p.get("id") for p in store.get("patterns") or []}

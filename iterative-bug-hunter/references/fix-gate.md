@@ -9,6 +9,8 @@
 | `target_cleared` | 同 `rule_id` 在同 route×viewport 不再命中（对修复后 captures 重跑 probe） |
 | `zero_new_layout` | 回归矩阵重跑 layout+contrast，相对已有 fingerprints **零新增** |
 | `pixel_gate` | 仅目标 route×viewport 允许 diff；其他已扫 cell 超阈 → fail，除非 intentional 审批 |
+
+Phase 3：像素基线完整性可用 [`ci-gate.md`](ci-gate.md) 的 `baseline_lock.py verify`；有意变更仍走 `visual_diff.py approve`（approvals 必须带与当前文件一致的 `sha256`）。
 | `unit_green` | 若提供 `--test-cmd` 则 exit 0 |
 
 4. 失败 → agent 回滚（`git checkout` 等），记 `fix-failed`；同一 bug 失败 ≥ `max_fix_failures` → Deferred。

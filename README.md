@@ -45,7 +45,7 @@ npm start   # http://127.0.0.1:5173
 # Phase 3：路由发现 / FP 白名单 / 导出 / CI
 & $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/discover_routes.py --root . --seed / --html public/index.html --write
 & $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/export_report.py --root .
-& $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/ci_gate.py --root ../.. --skip-axe
+& $env:MIMO_PYTHON ../../iterative-bug-hunter/scripts/ci_gate.py --root ../..
 ```
 
 ## 安装为 MiMo Desktop skill（可选）

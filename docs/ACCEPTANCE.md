@@ -74,7 +74,7 @@ npm start
 | 5 | axe 降级 | 无 axe 时 `status=unavailable`，不假装通过 | **PASS** — TestAxeGate |
 | 6 | ci_gate | unittest 步骤可编排并输出 JSON | **PASS** — TestCiGateImport + 本地 ci_gate |
 | 7 | second-project 泛化 | 注入 overflow/dead-link/missing-feedback/touch-target/contrast/code/canvas 缺陷；非 demo 路径 | **PASS** — HTML/CSS/JS/canvas/flows |
-| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 105 tests OK |
+| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 108 tests OK |
 
 ### second-project 注入缺陷
 

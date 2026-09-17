@@ -216,22 +216,30 @@ def rank_routes(
     entries: list[dict[str, Any]],
     max_routes: int = 12,
 ) -> list[dict[str, Any]]:
-    """Dedupe by route keeping best (lowest) priority; stable within same priority."""
+    """Dedupe by route keeping best (lowest) priority; preserve document order within a priority."""
     best: dict[str, dict[str, Any]] = {}
     order: list[str] = []
+    seq = 0
     for entry in entries:
         route = normalize_route(str(entry.get("route") or "/"))
         item = dict(entry)
         item["route"] = route
         item["priority"] = int(entry.get("priority", 99))
+        item["_seq"] = seq
+        seq += 1
         if route not in best:
             best[route] = item
             order.append(route)
             continue
+        # Lower priority wins; tie keeps earlier document order (_seq).
         if item["priority"] < best[route]["priority"]:
+            item["_seq"] = best[route]["_seq"]
             best[route] = item
     ordered = [best[r] for r in order]
-    ordered.sort(key=lambda x: (x["priority"], x["route"]))
+    # Stable: priority first, then original document order — NOT alphabetical.
+    ordered.sort(key=lambda x: (x["priority"], x["_seq"]))
+    for item in ordered:
+        item.pop("_seq", None)
     if max_routes and max_routes > 0:
         ordered = ordered[:max_routes]
     return ordered

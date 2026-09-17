@@ -13,8 +13,11 @@ Local and GitHub Actions share one entrypoint: `scripts/ci_gate.py`.
 Stdout is a JSON report: `{ok, steps: [{name, status, detail}]}`.
 
 ```bash
-python iterative-bug-hunter/scripts/ci_gate.py --root . --skip-axe
+python iterative-bug-hunter/scripts/ci_gate.py --root .
+python iterative-bug-hunter/scripts/ci_gate.py --root . --with-axe
 ```
+
+Axe is **disabled by default**; pass `--with-axe` to enable (and then use `--fail-on violations`).
 
 ## Baseline lock
 
