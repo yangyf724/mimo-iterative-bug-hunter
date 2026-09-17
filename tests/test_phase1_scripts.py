@@ -616,11 +616,14 @@ class TestInitStatePhase1(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             state = init_mod.init_state(root)
-            self.assertEqual(state["phase"], 1)
+            self.assertGreaterEqual(state["phase"], 1)
             oracle = state["visual_oracle"]
             self.assertIn("overlap_ratio", oracle)
             self.assertIn("visual_diff_threshold", oracle)
             self.assertIn("line_height_min_ratio", oracle)
+            # Phase 2 defaults retained
+            self.assertIn("safe_inset_pct", oracle)
+            self.assertEqual(state["surfaces"]["canvas"]["kind"], "scene-json")
 
 
 class TestReviewCriticals(unittest.TestCase):

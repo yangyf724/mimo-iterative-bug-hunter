@@ -1,4 +1,4 @@
-# Phase 0 / Phase 1 验收 DoD
+# Phase 0 / Phase 1 / Phase 2 验收 DoD
 
 锁定验收项目：`examples/acceptance-demo/`（零依赖 Node 静态站，2 路由）。
 
@@ -48,16 +48,31 @@ npm start
 | 7 | hunt_round | skip-capture fixtures 出 ≥2 类 L3 规则；二次 round 去重 | **PASS** — TestHuntRound |
 | 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 54 tests OK |
 
+## Phase 2 DoD 勾选表
+
+| # | 检查项 | 通过标准 | 状态 |
+|---|--------|----------|------|
+| 1 | ux-flow 静态 | dead-link / missing-feedback / missing-empty-state 正反例 | **PASS** — TestUxFlow |
+| 2 | 符号化 flow | pre/post 通过、失败 `ux-flow-step`、缺符号 `unavailable` | **PASS** — TestUxFlow |
+| 3 | canvas-safe/asset | safe-area / export-mismatch / low-res / aspect / z-order 正反例；全幅背景不误报 | **PASS** — TestCanvasProbe |
+| 4 | vlm-audit | 双视角一致合并；不一致丢弃；与 raw 交叉不双计 | **PASS** — TestVlmAudit |
+| 5 | subagent 分片 | `--shard` 划分稳定；`merge` 合并 MANIFEST 并复制制品 | **PASS** — TestCaptureShard |
+| 6 | hunt_round 集成 | fixtures 同时产出 layout + ux + canvas；L3→L4 `degrade_elevated_by` | **PASS** — TestHuntRoundPhase2 |
+| 7 | demo 注入 | 死链、无反馈 submit、空列表、canvas 场景、flows 在非 ignore 路径 | **PASS** — `index.html` + `canvas/poster.scene.json` + `flows/empty-submit.json` |
+| 8 | 单测全绿 | `python -m unittest discover -s tests` | **PASS** — 88 tests OK（含 stub-canvas 不升 L4、z-order 并集） |
+
 ## 本地验收脚本（agent 执行）
 
 1. `& $env:MIMO_PYTHON -m unittest discover -s tests -v`
 2. 启动 demo；`capture_web.py` 或 playwright-mcp 采集 375/1440
-3. `hunt_round.py --run-id run-1`（或 `--skip-capture` + 已有 MANIFEST）
-4. 确认 `by_rule` 含 overflow-x / touch-target / overlap-interactive / contrast-text 等
+3. `hunt_round.py --run-id run-1`（或 `--skip-capture` + 已有 MANIFEST；可加 `--flows` / `--canvas-items`）
+4. 确认 `by_rule` 含 overflow-x / touch-target / dead-link / safe-area-violation 等
 5. 修一条 Confirmed → 重新 capture → `fix_gate.py`
 6. 第二轮 hunt_round → `new_count=0` → converge
+7. Phase 2：`vlm_audit.py scaffold` + `merge`；分片 `--shard 0/2` + `merge`
 
 ## 单元测试覆盖（不依赖浏览器）
 
 - Phase 0：init_state / fingerprint / converge / layout overflow-x / validate_report / lock
 - Phase 1：capture 矩阵与降级、layout 全规则、contrast、visual_diff、fix_gate、hunt_round 编排
+- Phase 2：ux_flow / canvas_probe / vlm_audit / capture shard+merge / hunt_round 集成

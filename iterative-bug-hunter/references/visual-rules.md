@@ -1,4 +1,4 @@
-# 视觉规则阈值（Phase 1）
+# 视觉规则阈值（Phase 2）
 
 ## layout-geom
 
@@ -39,6 +39,34 @@
 
 `state.visual_oracle`（`init_state.py` Phase 1 默认值含 `overlap_ratio`、`line_height_min_ratio`、`visual_diff_threshold`）。
 
-## Phase 2+（索引）
+## ux-flow
 
-axe 规则映射 · canvas `safe-area-violation` / `export-mismatch` / `z-order-occlusion` / `low-res-asset` / `aspect-distort` 等。
+| 规则 ID | 判定 | 默认 |
+|---------|------|------|
+| `dead-link` | href 为空/#/javascript:void(0) | — |
+| `missing-feedback` | 有 submit 无 error/toast sink | inferred |
+| `missing-empty-state` | `data-list-empty=expected` 无占位 | inferred |
+| `ux-flow-step` | 符号化 post 条件失败 | flow 文件 |
+
+脚本：`scripts/ux_flow.py`。细节：[`ux-flow.md`](ux-flow.md)。
+
+## canvas-safe / canvas-asset
+
+| 规则 ID | 判定 | 默认 |
+|---------|------|------|
+| `safe-area-violation` | 超出 inset（全幅背景跳过） | 5% |
+| `export-mismatch` | export_size ≠ target | — |
+| `z-order-occlusion` | text/cta 被覆盖 | 0.98 |
+| `low-res-asset` | display/pixel > 阈值 | 2.0 |
+| `aspect-distort` | 宽高比偏差 | 2% |
+| `hierarchy-flat` | 主 CTA 过小 | Deferred |
+
+脚本：`scripts/canvas_probe.py`。细节：[`canvas-protocol.md`](canvas-protocol.md)。
+
+## vlm-audit
+
+双视角一致才进 Candidate；与机器 finding 交叉不双计。见 [`vlm-audit.md`](vlm-audit.md)。
+
+## Phase 3+（索引）
+
+axe 规则映射 · CI 门禁。

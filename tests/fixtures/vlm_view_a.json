@@ -1,0 +1,28 @@
+{
+  "view": "A",
+  "perspective": "布局/信息层级/裁切/重叠",
+  "screenshot": "fixtures/home__375x812__viewport.png",
+  "route": "/",
+  "viewport": "375x812",
+  "inferred_oracle": true,
+  "candidates": [
+    {
+      "title": "主按钮容器在窄屏被裁切",
+      "problem": "CTA 行宽导致横向溢出，主按钮右缘不可见",
+      "confidence": 0.85,
+      "location": {
+        "route": "/",
+        "viewport": "375x812",
+        "selector": "[data-testid=primary-cta]",
+        "bbox": {"x": 300, "y": 620, "w": 120, "h": 48}
+      },
+      "category": "ui-layout"
+    },
+    {
+      "title": "配色不够高级",
+      "problem": "审美偏好",
+      "confidence": 0.4,
+      "location": {"route": "/", "viewport": "375x812"}
+    }
+  ]
+}

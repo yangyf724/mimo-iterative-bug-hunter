@@ -1,0 +1,27 @@
+{
+  "id": "home-submit-empty",
+  "route": "/",
+  "viewport": "375x812",
+  "inferred_oracle": true,
+  "symbols": {
+    "submitBtn": "[data-testid=flow-submit]",
+    "errorBanner": "[data-testid=flow-error]",
+    "toast": "[data-testid=flow-toast]",
+    "formValid": false
+  },
+  "steps": [
+    {
+      "id": "submit-empty",
+      "action": "click",
+      "target": "submitBtn",
+      "pre": {
+        "formValid": false,
+        "submitBtn.visible": true
+      },
+      "post": {
+        "errorBanner.visible": true,
+        "toast.visible": false
+      }
+    }
+  ]
+}

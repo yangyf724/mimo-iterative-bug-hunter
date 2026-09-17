@@ -13,7 +13,7 @@ description: >
 
 # Iterative Bug Hunter
 
-对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）通道；Phase 1 含多 viewport 采集、完整 layout-geom / contrast-type / responsive-matrix、像素 visual-diff 与可判定 Fix Gate。
+对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）+ 画布通道；Phase 2 含 ux-flow 符号化、canvas-safe/asset、vlm-audit 双视角候选与 subagent 分片采集。
 
 ## 触发
 
@@ -32,6 +32,8 @@ description: >
 | routes | `/`, `/about` 或探测 | 以 `state.surfaces.web.routes` 为准 |
 | viewports | `375x812`, `1440x900` | 指纹区分 viewport |
 | base_url | 用户 dev server | 无则先尝试探测，失败进 L1 |
+| canvas items | 可选 | `state.surfaces.canvas` 或 `--canvas-items` |
+| flows | 可选 | `.bug-hunter/flows/*.json` 符号化 |
 | K | 2 | `required_quiet_streak` |
 | max_runs | 20 | 预算护栏 |
 
@@ -50,14 +52,15 @@ description: >
 ## 主循环
 
 1. **Bootstrap** — `scripts/init_state.py`（已有 `state.json` 则 resume：`--resume-summary`）。
-2. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`。
+2. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`；有 canvas items 且 web≥L3 可到 L4。
 3. **Plan** — 选策略集；禁止连续两轮完全相同；quiet_streak≥1 时加压。
-4. **Capture** — L≥2 时 `scripts/capture_web.py`（或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
-5. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py`。
-6. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed。
-7. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
-8. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
-9. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`。
+4. **Capture** — L≥2 时 `scripts/capture_web.py`（可 `--shard i/n` + `merge`，见 [`references/subagent-capture.md`](references/subagent-capture.md)；或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
+5. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
+6. **VLM（可选）** — 双视角审图后 `vlm_audit.py merge`，仅 Candidate；见 [`references/vlm-audit.md`](references/vlm-audit.md)。
+7. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed。
+8. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
+9. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
+10. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`。
 
 ### quiet 四条件（K 默认 2）
 
@@ -83,6 +86,7 @@ description: >
 - 只在目标项目 cwd 的 `.bug-hunter/` 读写。
 - **单写者**：只有 main agent 写 `state.json` / `fingerprints.json` / `bugs/**`。
 - 写 `state.json` 前必须持有 `.bug-hunter/.lock`（`O_EXCL`）；失败重试 3 次后中止本轮。
+- **subagent 白名单**：仅 `runs/*/captures/shard-*` 与 `runs/*/findings/raw`；汇总用 `capture_web.py merge`。
 - 禁止双会话对同一项目同时跑本 skill。
 
 ## 用户合同

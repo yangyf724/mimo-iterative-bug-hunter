@@ -1,4 +1,4 @@
-# 采集协议（Capture Protocol）— Phase 1
+# 采集协议（Capture Protocol）— Phase 2
 
 1. **环境**：优先 `scripts/capture_web.py`（Playwright Python 或 Node）；不可用时用 playwright-mcp 按本协议手工采集，再跑 probes。
 2. **路由集**：`state.surfaces.web.routes`；默认补全关键链接，设上限。
@@ -17,6 +17,7 @@ MANIFEST.json
 5. **稳定化**：network idle；`prefers-reduced-motion: reduce` 禁动画。
 6. **认证**：storage_state；未授权页跳过并记 Blind Spots。
 7. **MANIFEST**：`base_url`, `routes`, `viewports`, `backend`, `items[]`（route/viewport/stem/status/相对路径）, `captured_at`。
+8. **Phase 2 扩展**：elements 含 `href` / `role` / `type` / `attrs`（供 ux-flow）；支持 `--shard i/n` 分片与 `merge` 汇总（见 [`subagent-capture.md`](subagent-capture.md)）。
 
 ## 脚本入口
 
@@ -27,6 +28,10 @@ MANIFEST.json
 # 或显式指定
 & $env:MIMO_PYTHON iterative-bug-hunter/scripts/capture_web.py --root <project> `
   --base-url http://127.0.0.1:5173 --routes / /about --viewports 375x812 1440x900
+
+# Phase 2：分片 + 汇总
+& $env:MIMO_PYTHON iterative-bug-hunter/scripts/capture_web.py --root <project> --run-id run-1 --shard 0/2
+& $env:MIMO_PYTHON iterative-bug-hunter/scripts/capture_web.py merge --root <project> --run-id run-1
 ```
 
 退出码：`0` 全部成功 · `1` 部分失败 · `2` 参数错误 · `3` 无 Playwright backend（MANIFEST `backend=unavailable`）。
