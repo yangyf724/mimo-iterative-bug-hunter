@@ -7,6 +7,31 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-17
+
+### 摘要
+Phase 2 深层与画布：ux-flow（死链/反馈缺失/符号化前后置条件）、canvas-safe/asset（安全区/导出/分辨率/层级）、vlm-audit 双视角候选合并、subagent 分片采集。审查 critical 已修复。
+
+### Added
+- `iterative-bug-hunter/scripts/ux_flow.py` — 静态 UX 规则 + WebTestPilot 符号化 pre/post → 死链、无反馈提交、空状态可机器判定；缺符号记 unavailable 不假 quiet
+- `iterative-bug-hunter/scripts/canvas_probe.py` — safe-area / export-mismatch / z-order（矩形并集）/ low-res / aspect / hierarchy-flat → 画布 scene-json 可出 L3 数值证据
+- `iterative-bug-hunter/scripts/vlm_audit.py` — 双视角 scaffold/merge + 与机器 finding 交叉 → VLM 只产候选，不与 layout 重复计数
+- `iterative-bug-hunter/references/ux-flow.md` `canvas-protocol.md` `vlm-audit.md` `subagent-capture.md` — Phase 2 通道与并发协议 → agent 有可执行配方
+- `examples/acceptance-demo/canvas/poster.scene.json` `flows/empty-submit.json` — 注入画布与 flow 缺陷（非 gitignore 路径）→ Phase 2 DoD 可复现
+- `tests/test_phase2_scripts.py` `tests/phase2_fixture_e2e.py` — 27 unit + fixture E2E → 回归安全网（含 stub-canvas 不升 L4、z-order 并集）
+
+### Changed
+- `iterative-bug-hunter/scripts/capture_web.py` — 增加 `--shard i/n` 与 `merge`；elements 写入 href/role/type/attrs → 支持 subagent 并行采集与 ux-flow
+- `iterative-bug-hunter/scripts/hunt_round.py` — 编排 ux/canvas；仅 objects/assets 真实可扫时才升 L4 → 避免 stub 配置假 quiet
+- `iterative-bug-hunter/scripts/init_state.py` — phase=2、canvas/ux/vlm oracle 默认值、subagent 写路径白名单 → 新项目开箱即用 Phase 2
+- `iterative-bug-hunter/SKILL.md` 与 references strategies/visual-rules/capture-protocol — 主循环指向 Phase 2 脚本 → 正文仍精简
+- `docs/ACCEPTANCE.md` — Phase 2 DoD 8 项勾选 → 验收可查
+
+### Fixed
+- 独立审查：stub canvas 不再假升 L3→L4 或假 quiet canvas modality
+- z-order 覆盖改矩形并集，两块各盖 60% 的同区面板不再加成 100%
+- 验收 flow fixture 移出 `.bug-hunter/`（gitignore）到 `examples/acceptance-demo/flows/`
+
 ## [0.2.0] - 2026-09-17
 
 ### 摘要
