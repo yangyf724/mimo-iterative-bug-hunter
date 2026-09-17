@@ -1,14 +1,27 @@
 ---
 feature: phase3-engineering
-status: in-progress
+status: delivered
 updated: 2026-09-17
 branch: feat/phase3
-commits: # filled at delivery
+commits: afd8918..c02d888
 ---
 
 # Phase 3 — 工程化
 
 ## Report
+
+**What was built** — Phase 3 工程化闭环：`discover_routes.py`（seed/package.json/sitemap/HTML 同源路由，文档序排序，锁内合并 state）；`fp_feedback.py`（rejected→模式库、四种 match、hunt/probe suppress、AGENTS snippet 只生成不改用户文件）；`export_report.py`（schema_version=1 + validate，未知版本 exit 3）；`baseline_lock.py`（sha256 锁；approvals 必须匹配当前 hash，路径/路由-only 不能永久解锁）；`axe_gate.py`（unavailable 明确不假装通过）；`ci_gate.py` + `.github/workflows/ci.yml`（默认关 axe，`--with-axe` 才跑并 fail-on violations；export 永不静默 skip）；`examples/second-project/` 第二验收 demo（`/shop` `/contact` + 不同缺陷组合）。`hunt_round`/四探针支持 `--fp-patterns`，suppressed 不计入 `new_count`。
+
+**Verification** — `python -m unittest discover -s tests`：108 tests OK。`ci_gate.py --root .`：unittest + phase1/2 fixture E2E PASS，export_report PASS，baseline_lock SKIP（无锁），axe SKIP（默认关）。`discover_routes` 对 second-project 列出 `/` `/shop` `/contact`。
+
+**Review** — 独立审查 3 critical（approvals 过宽、rank_routes 字母序、probe 无 --fp-patterns）+ 若干 major，已在 `c02d888` 修复；针对性复审全部 PASS，无残留 critical。
+
+**Journey log** —
+1. 环境仍禁止 `git worktree add`，沿用主 checkout `feat/phase3`。
+2. baseline approvals 必须 content-addressed（sha256==current）；否则一条历史 route×viewport 批准会永久解锁。
+3. 同优先级路由必须保留文档序，不能按路径名字典序。
+4. FP suppress 落在 hunt_round 与四探针 CLI；指纹仍注册，只改 new_count。
+5. ci_gate 用 `--with-axe` 而非死掉的 `--skip-axe`；export 无 state 时也做 schema smoke。
 
 ## [S1] Problem
 
@@ -261,7 +274,7 @@ axe_gate.py --html-file page.html   # 离线：写临时文件再跑（若 node 
 #### 6.1 ci_gate.py（本地与 CI 同一入口）
 
 ```
-ci_gate.py --root . [--skip-e2e] [--skip-axe] [--demo-root examples/acceptance-demo] [--second-root examples/second-project]
+ci_gate.py --root . [--skip-e2e] [--with-axe] [--demo-root examples/acceptance-demo] [--second-root examples/second-project]
 ```
 
 步骤（任一步 FAIL 则最终 exit 1，但继续跑完已开始步骤以便汇总）：
@@ -270,7 +283,7 @@ ci_gate.py --root . [--skip-e2e] [--skip-axe] [--demo-root examples/acceptance-d
 2. `tests/phase1_fixture_e2e.py` 与 `tests/phase2_fixture_e2e.py`（若存在）
 3. `baseline_lock.py verify`（对 demo 若有 baselines；无锁则 skip 并记 warn）
 4. `export_report.py` 在临时 `.bug-hunter` 上 smoke（或对 second-project fixture）
-5. 可选 axe：若未 `--skip-axe` 且探测到 node，对 second-project HTML fixtures 跑 axe_gate
+5. 可选 axe：仅 `--with-axe` 时对 second-project HTML 跑 axe_gate（`--fail-on violations`）；默认关闭
 6. stdout JSON summary：`{ok, steps: [{name, status, detail}]}`
 
 #### 6.2 GitHub Actions
@@ -281,7 +294,7 @@ ci_gate.py --root . [--skip-e2e] [--skip-axe] [--demo-root examples/acceptance-d
 - setup-python 3.11+
 - run: `python -m unittest discover -s tests`
 - run: fixture E2E scripts
-- run: `python iterative-bug-hunter/scripts/ci_gate.py --root . --skip-axe`（axe 在无浏览器 job 可 skip；有 node 的 job 可启用）
+- run: `python iterative-bug-hunter/scripts/ci_gate.py --root .`（axe 默认关闭；有 node/axe 的 job 可加 `--with-axe`）
 - 不强制安装 playwright/axe（与本机降级哲学一致）；workflow 注释写明如何扩展
 
 ### 7. 第二验收项目（examples/second-project/）
@@ -394,10 +407,10 @@ examples/second-project/
 
 ## Tasks
 
-- [ ] T1: 本 spec + 分支 `feat/phase3` — acceptance: 文档存在且 status=designed (covers: S2)
-- [ ] T2: `discover_routes.py` + 纯函数单测 + `--write` 锁写 — acceptance: HTML/sitemap/package 正反例通过；max_routes 生效 (covers: S2)
-- [ ] T3: `fp_feedback.py` + probe/hunt 集成 — acceptance: absorb/check/suppress 单测；summary.suppressed_count 正确 (covers: S2)
-- [ ] T4: `export_report.py` + validate — acceptance: fixture state 产出合法 report.json；缺字段 exit≠0 (covers: S2)
-- [ ] T5: `baseline_lock.py` + `axe_gate.py` 降级路径 — acceptance: hash/approvals/unavailable 单测通过 (covers: S2)
-- [ ] T6: `ci_gate.py` + `.github/workflows/ci.yml` + references/SKILL/init_state phase3 — acceptance: ci_gate JSON 步骤可跑 unittest；workflow 文件存在 (covers: S2; depends: T2–T5)
-- [ ] T7: `examples/second-project/` 注入 + ACCEPTANCE Phase 3 DoD + unittest 全绿 — acceptance: discover 能列出 shop/contact；fixtures 覆盖≥6 类 rule；`python -m unittest discover -s tests` OK (covers: S1;S2; depends: T2–T6)
+- [x] T1: 本 spec + 分支 `feat/phase3` — acceptance: 文档存在且 status=designed (covers: S2)
+- [x] T2: `discover_routes.py` + 纯函数单测 + `--write` 锁写 — acceptance: HTML/sitemap/package 正反例通过；max_routes 生效 (covers: S2)
+- [x] T3: `fp_feedback.py` + probe/hunt 集成 — acceptance: absorb/check/suppress 单测；summary.suppressed_count 正确 (covers: S2)
+- [x] T4: `export_report.py` + validate — acceptance: fixture state 产出合法 report.json；缺字段 exit≠0 (covers: S2)
+- [x] T5: `baseline_lock.py` + `axe_gate.py` 降级路径 — acceptance: hash/approvals/unavailable 单测通过 (covers: S2)
+- [x] T6: `ci_gate.py` + `.github/workflows/ci.yml` + references/SKILL/init_state phase3 — acceptance: ci_gate JSON 步骤可跑 unittest；workflow 文件存在 (covers: S2; depends: T2–T5)
+- [x] T7: `examples/second-project/` 注入 + ACCEPTANCE Phase 3 DoD + unittest 全绿 — acceptance: discover 能列出 shop/contact；fixtures 覆盖≥6 类 rule；`python -m unittest discover -s tests` OK (covers: S1;S2; depends: T2–T6)

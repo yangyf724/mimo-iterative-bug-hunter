@@ -43,4 +43,4 @@ Backend detection: local `node_modules/.bin/axe` → `npx @axe-core/cli` → una
 
 ## GitHub Actions
 
-See `.github/workflows/ci.yml`. Default job runs unittest + fixture E2E + `ci_gate --skip-axe`. Enable axe after provisioning `@axe-core/cli` and a reachable demo URL.
+See `.github/workflows/ci.yml`. Default job runs unittest + fixture E2E + `ci_gate` (axe off). Enable axe with `--with-axe` after provisioning `@axe-core/cli` and a reachable demo URL.
