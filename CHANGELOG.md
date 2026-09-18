@@ -7,6 +7,26 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-18
+
+### 摘要
+首个 1.x 稳定线：为 iterative-bug-hunter 落地 Fix 三档路由（local / lite / compose），并附 research blueprint 与 compose Spec；GitHub 仓库改为公开。
+
+### Added
+- `iterative-bug-hunter/references/compose-escalate.md` — 三档修复路由操作化（判据、预算、bug packet、正反例、禁止项）→ Confirm 后可陈述地选择小修 / 结构化重试 / 门控 compose-next
+- `docs/compose/spec/hunt-fix-router.md` — compose-next feature 文档与验收记录 → 可追溯 AC、Verify 与独立 review 结论
+- `docs/blueprint/hunt-escalate-compose.md` / `hunt-escalate-compose-v2.md` — 升格方案 v1 与文献研判 v2 → 记录 Agentless 式默认路径与 oracle 主门的依据
+
+### Changed
+- `iterative-bug-hunter/SKILL.md` — Fix 主循环改为三档路由并链 compose-escalate；Examples/Troubleshooting 补升格边界 → agent 不再只有「小修或 Deferred」
+- `iterative-bug-hunter/references/fix-gate.md` — 失败后按 local/lite/compose 分流，禁止同构重试；`fix_gate.py` 判定语义不变
+- `iterative-bug-hunter/scripts/init_state.py` — `state.budget` 增加 max_local_attempts / lite_max_attempts / max_compose_escalations 与编辑点上限；新增 `state.fix_router`
+- `iterative-bug-hunter/scripts/export_report.py` — bug 可选透出 fix_route / fix_reason_codes / fix_attempts / packet_path；顶层 budget 与 fix_router；schema_version 仍为 1
+- `iterative-bug-hunter/references/report-template.md` / `export-schema.md` — REPORT 增加 Fix Router 节；export 文档化可选路由字段
+
+### Fixed
+- `tests/test_phase0_scripts.py` / `test_phase3_scripts.py` — 覆盖 budget/fix_router 与 export 路由字段 → 回归门防止路由契约被静默改掉
+
 ## [0.4.2] - 2026-09-18
 
 ### 摘要
