@@ -12,12 +12,15 @@
 ## 仓库定位
 
 - `DESIGN.md` — 设计真源（全模态 taxonomy、策略库、收敛与 Fix Gate）
-- `iterative-bug-hunter/` — skill 本体（SKILL.md + scripts + references + locales）
+- `iterative-bug-hunter/` — skill 本体（SKILL.md + scripts + references + locales）；**唯一 skill 真源**
 - `examples/acceptance-demo/` — Phase 0–2 本地验收 demo（双路由 + overflow / touch-target / overlap / contrast / 死链 / 无反馈 submit / canvas 场景 / flows）
 - `examples/second-project/` — Phase 3 第二验收 demo（泛化：`/shop` `/contact` + 不同缺陷组合）
-- `docs/ACCEPTANCE.md` — Phase 0–3 DoD 勾选
-- `docs/compose/spec/` — 各 Phase feature 文档
 - `tests/` — 状态机与探针单元测试（stdlib unittest）
+- `docs/ACCEPTANCE.md` — Phase 0–3 DoD 勾选
+- `docs/METRICS.md` — 观测记录
+- `docs/BLUEPRINTS.md` — Fix 升格研究结论索引（blueprint ≠ Spec）
+- `docs/compose/spec/workspace-cleanup.md` — 本次工作区清理 feature 文档
+- 历史 phase feature 文档已收敛；交付细节以 `CHANGELOG.md` 为准
 
 ## 快速开始
 

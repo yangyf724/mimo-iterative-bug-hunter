@@ -1,7 +1,7 @@
 # Fix Router — 三档修复路由（compose-escalate v2）
 
 > 准据：根 `DESIGN.md`（Confirm / quiet 不变量）> [`fix-gate.md`](fix-gate.md)（Local 门禁）> 本文（路由）> compose-next 默认契约。  
-> 蓝图来源：`docs/blueprint/hunt-escalate-compose-v2.md`（实施文档：`docs/compose/spec/hunt-fix-router.md`）。
+> 研究索引：`docs/BLUEPRINTS.md`（原 blueprint v1/v2 已压缩；路由行为以本文为准）。
 
 修复只针对 **Confirmed** 且 `mode=hunt-and-fix`。Candidate / Deferred **永不**自动进入任何修复档或 compose-next。
 

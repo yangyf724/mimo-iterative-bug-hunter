@@ -1,14 +1,13 @@
 ---
 name: iterative-bug-hunter
-description: 全模态迭代抓 BUG 直到收敛：代码通道（静态/动态/生成式）+ 视觉通道（布局几何、对比度、axe 无障碍、响应式矩阵、UX 状态）+ 画布通道（安全区/导出/层级/资源），指纹去重、跨模态确认、可选修复+回归门。
-  Use when: 抓BUG / 找bug / 修到没有 / bug hunt / hunt until clean / 网页视觉问题 / 布局炸了 / 无障碍 / 画布设计检查 / UI不对 / 对比度 / 响应式问题 / design QA / visual bug。
-  Do NOT use for one-shot lint 汇总, pure feature dev, or when no runnable app/assets and user only wants static code review.
-compatibility: Python 3.10+ for bundled scripts; Playwright or playwright-mcp for web capture; axe-core optional (L3); canvas scene JSON optional (L4).
+description: 全模态迭代抓 BUG 直到收敛：代码 + 视觉布局/无障碍/响应式 + 画布通道，指纹去重、跨模态确认、可选修复+回归门。Use when the user says 抓BUG, 找bug, 修到没有, bug hunt, hunt until clean, 网页视觉问题, 布局炸了, 无障碍, 画布设计检查, UI不对, 对比度, 响应式问题, design QA, or visual bug. Do NOT use for one-shot lint 汇总, pure feature dev, or when no runnable app/assets and user only wants static code review.
 ---
 
 # Iterative Bug Hunter
 
 对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）+ 画布通道；Phase 2 含 ux-flow 符号化、canvas-safe/asset、vlm-audit；Phase 3 含路由发现、FP 白名单、machine-readable 导出、baseline/axe CI 门禁。
+
+运行环境：Python 3.10+（脚本）；Web 采集需 Playwright 或 playwright-mcp；axe-core 可选（L3）；画布 scene JSON 可选（L4）。
 
 ## Important
 

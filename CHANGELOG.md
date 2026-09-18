@@ -8,7 +8,12 @@ Versioning follows [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- `README.md` — 增加项目简称 **MIBG**（Mimo Iterative Bug Hunter）→ 对话、文档与检索可用统一短名；仓库/skill 路径名不变
+- 工作区深度清理 — 删除运行时垃圾与 skill 重复副本、收敛历史 docs、`.gitignore` 增加 `.mimocode/` → 源码仓只保留真源与必要验收文档
+- `docs/BLUEPRINTS.md` — 新增研究蓝图压缩索引，替代已删 `docs/blueprint/*` 正文 → Fix 路由结论可查且不双真源
+- `iterative-bug-hunter/references/compose-escalate.md` — 硬链改为指向 `docs/BLUEPRINTS.md`；路由行为仍以本文为准
+- `README.md` — 仓库定位列表与收敛后的 docs 树一致；增加项目简称 **MIBG**（Mimo Iterative Bug Hunter）→ 对话、文档与检索可用统一短名；仓库/skill 路径名不变
+- `iterative-bug-hunter/SKILL.md` — frontmatter `description` 压为单行、`compatibility` 挪到正文「运行环境」→ 符合 skill-creator 校验习惯
+- 删除 `docs/compose/spec/phase0`–`phase3`、`real-acceptance-install`、`skill-config-opt`、`hunt-fix-router` 与 `docs/blueprint/*` 正文 → 历史结论由 CHANGELOG / ACCEPTANCE / METRICS / BLUEPRINTS / skill references 承载
 
 ## [1.0.0] - 2026-09-18
 

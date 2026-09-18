@@ -28,3 +28,6 @@ dist/
 *.tmp
 .playwright-mcp/
 .ci-tmp/
+
+# MiMoCode local runtime / optional project skill install
+.mimocode/
