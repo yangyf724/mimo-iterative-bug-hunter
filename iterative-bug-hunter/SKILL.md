@@ -1,19 +1,21 @@
 ---
 name: iterative-bug-hunter
-description: >
-  全模态迭代抓 BUG 直到收敛：代码通道（静态/动态/生成式）+ 视觉通道
-  （布局几何、对比度、axe 无障碍、响应式矩阵、UX 状态）+ 画布通道
-  （安全区/导出/层级/资源），指纹去重、跨模态确认、可选修复+回归门。
-  Use when: 抓BUG / 找bug / 修到没有 / bug hunt / hunt until clean /
-  网页视觉问题 / 布局炸了 / 无障碍 / 画布设计检查 / UI不对 / 对比度 /
-  响应式问题 / design QA / visual bug。
-  Do NOT use for one-shot lint 汇总, pure feature dev, or when no
-  runnable app/assets and user only wants static code review.
+description: 全模态迭代抓 BUG 直到收敛：代码通道（静态/动态/生成式）+ 视觉通道（布局几何、对比度、axe 无障碍、响应式矩阵、UX 状态）+ 画布通道（安全区/导出/层级/资源），指纹去重、跨模态确认、可选修复+回归门。
+  Use when: 抓BUG / 找bug / 修到没有 / bug hunt / hunt until clean / 网页视觉问题 / 布局炸了 / 无障碍 / 画布设计检查 / UI不对 / 对比度 / 响应式问题 / design QA / visual bug。
+  Do NOT use for one-shot lint 汇总, pure feature dev, or when no runnable app/assets and user only wants static code review.
+compatibility: Python 3.10+ for bundled scripts; Playwright or playwright-mcp for web capture; axe-core optional (L3); canvas scene JSON optional (L4).
 ---
 
 # Iterative Bug Hunter
 
 对当前项目持续抓 BUG，直到「在约定范围内无新增确认 BUG」。代码 + 视觉（Web）+ 画布通道；Phase 2 含 ux-flow 符号化、canvas-safe/asset、vlm-audit；Phase 3 含路由发现、FP 白名单、machine-readable 导出、baseline/axe CI 门禁。
+
+## Important
+
+- 只在目标项目 cwd 的 `.bug-hunter/` 读写；**单写者** main agent；写 `state.json` 前必须持锁（见「状态与并发」）。
+- 探测失败 / axe unavailable **不得**静默跳过或假装通过；必须记 Blind Spots。
+- 纯审美 / 无规则 VLM 主观 → **Deferred**，不得 Confirmed（见「Confirm 门槛」）。
+- 禁止自动改写用户项目 `AGENTS.md`（只生成 snippet）；完整禁止项见文末「禁止」。
 
 ## 触发
 
@@ -33,7 +35,7 @@ description: >
 | viewports | `375x812`, `1440x900` | 指纹区分 viewport |
 | base_url | 用户 dev server | 无则先尝试探测，失败进 L1 |
 | canvas items | 可选 | `state.surfaces.canvas` 或 `--canvas-items` |
-| flows | 可选 | `.bug-hunter/flows/*.json` 符号化 |
+| flows | 可选 | `.bug-hunter/flows/*.json` 符号化，见 [`references/ux-flow.md`](references/ux-flow.md) |
 | route discovery | 开 | `scripts/discover_routes.py`，见 [`references/route-discovery.md`](references/route-discovery.md) |
 | fp patterns | 可选 | `.bug-hunter/fp_patterns.json`，见 [`references/fp-feedback.md`](references/fp-feedback.md) |
 | K | 2 | `required_quiet_streak` |
@@ -58,12 +60,12 @@ description: >
 3. **Probe** — 探测 dev server / 路由可达性，写 `degrade_level`；有 canvas items 且 web≥L3 可到 L4。
 4. **Plan** — 选策略集；禁止连续两轮完全相同；quiet_streak≥1 时加压。
 5. **Capture** — L≥2 时 `scripts/capture_web.py`（可 `--shard i/n` + `merge`，见 [`references/subagent-capture.md`](references/subagent-capture.md)；或 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)）。
-6. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → FP 白名单 suppress → 指纹注册 → summary；或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
+6. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → FP 白名单 suppress → 指纹注册 → summary。UX flows 见 [`references/ux-flow.md`](references/ux-flow.md)；画布探针见 [`references/canvas-protocol.md`](references/canvas-protocol.md)。或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
 7. **VLM（可选）** — 双视角审图后 `vlm_audit.py merge`，仅 Candidate；见 [`references/vlm-audit.md`](references/vlm-audit.md)。
 8. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed；rejected 可 `fp_feedback.py absorb` 沉淀。
 9. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
 10. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
-11. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`；机器视图 `scripts/export_report.py`。
+11. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`；机器视图 `scripts/export_report.py`，字段见 [`references/export-schema.md`](references/export-schema.md)。
 12. **CI（可选）** — `scripts/ci_gate.py` / baseline lock / axe gate，见 [`references/ci-gate.md`](references/ci-gate.md)。
 
 ### quiet 四条件（K 默认 2）
@@ -85,6 +87,22 @@ description: >
 
 分类枚举与指纹字段：见 DESIGN.md §1.4 / §3.2；规则阈值：[`references/visual-rules.md`](references/visual-rules.md)。
 
+## Examples
+
+**应触发（正例）**
+
+1. User: 「帮我抓一下这个前端项目的 BUG，布局好像有点炸」  
+   → 确认 Scope（mode/modalities/routes/viewports）→ Bootstrap → Probe → 若可达则 Capture + Hunt → Confirm → 可选 Fix → 至 quiet 收敛 → REPORT 写明已扫面与 Blind Spots。
+2. User: 「hunt until clean，看看无障碍和对比度」  
+   → modalities 含 web-visual → 优先 axe/contrast 策略 → L3 证据门槛 → 连续 K 轮 quiet 后停。
+3. User: 「design QA，海报导出尺寸好像不对，还有些按钮被裁切」  
+   → 有 canvas items / 页面 UI → L2–L4 → canvas + layout 交叉确认 → 机器数值为准。
+
+**不应触发（负例）**
+
+- User: 「帮我看下这段 Python 有没有语法错误」（一次静态检查，无迭代 hunt 需求）→ 不启用本 skill；直接做 code review / lint。
+- User: 「给这个 API 加一个新接口」（纯功能开发）→ 不启用。
+
 ## 状态与并发（必须遵守）
 
 - 只在目标项目 cwd 的 `.bug-hunter/` 读写。
@@ -104,6 +122,17 @@ description: >
 - 或 degrade=L0。
 
 停止时 REPORT 必须写清：已扫 route×viewport、degrade 级别、Blind Spots、确认/拒绝/暂缓计数。
+
+## Troubleshooting
+
+| 现象 | 可能原因 | 处理 |
+|------|----------|------|
+| Probe 失败 / 无 base_url | 未起 dev server 或端口不对 | 先启动应用再 Probe；仍失败则 degrade=L1 并记 Blind Spots |
+| Capture 无 Playwright | 本机未安装或不可用 | 用 playwright-mcp 按 [`references/capture-protocol.md`](references/capture-protocol.md)；或 fixture 降级并在 MANIFEST 标明 backend |
+| axe 结果 `unavailable` | axe-core 未接入 | 保持 L2 策略；**禁止**把 unavailable 当通过；REPORT 记 Blind Spots |
+| 写 state 抢锁失败 | 另一会话/进程持锁 | 重试 ≤3 次后中止本轮；禁止双会话同时 hunt 同一项目 |
+| quiet 已 ≥K 但仍感觉有问题 | 策略未覆盖某 modality / 只扫了单 route | 检查 quiet 四条件是否真满足；补 route×viewport 或 modalities 后再跑 |
+| 修复后再现同一 BUG | Fix 未过门或回归失败 | 仅修 Confirmed；`fix_gate.py` 拒绝则不写代码；失败计入护栏 |
 
 ## 禁止
 
