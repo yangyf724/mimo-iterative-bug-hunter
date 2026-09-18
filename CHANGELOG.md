@@ -7,6 +7,17 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-18
+
+### 摘要
+修复 iterative-bug-hunter 的 skill 配置合规问题：frontmatter 通过 skill-creator 校验，正文补全 Examples/Troubleshooting 与 orphan references 链接，并记录双路径安装验收。
+
+### Added
+- `docs/compose/spec/skill-config-opt.md` — skill 配置优化 feature 文档与验收记录 → 可追溯 frontmatter 修复、安装路径与 validator 结论
+
+### Fixed
+- `iterative-bug-hunter/SKILL.md` — 去掉 frontmatter 中会被校验器判为非法的 YAML 折叠符，补全 `compatibility`，增加 Important/Examples/Troubleshooting 并挂接 ux-flow/canvas/export 等 references → 技能可通过 skill-creator 规范门禁，agent 触发与排错说明更完整
+
 ## [0.4.1] - 2026-09-18
 
 ### 摘要
