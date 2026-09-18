@@ -17,8 +17,7 @@
   </header>
   <main>
     <h1>联系我们</h1>
-    <!-- INTENTIONAL: submit present, no error/alert/toast sink -->
-    <form id="contact-form" action="#" method="post">
+    <form id="contact-form" action="#" method="post" novalidate>
       <label>
         邮箱
         <input type="email" name="email" required />
@@ -28,10 +27,35 @@
         <textarea name="message" required></textarea>
       </label>
       <button type="submit" data-testid="contact-submit">提交</button>
+      <div class="form-error" data-testid="contact-error" role="alert" hidden>请填写邮箱和留言后再提交。</div>
     </form>
-    <!-- INTENTIONAL: tiny icon-only control -->
     <button class="icon-tiny" type="button" aria-label="折叠">▾</button>
     <p data-empty-state-note>我们会在 1 个工作日内回复。</p>
   </main>
+  <script>
+    (function () {
+      var form = document.getElementById("contact-form");
+      if (!form) return;
+      var error = form.querySelector('[data-testid="contact-error"]');
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var email = form.querySelector('[name="email"]');
+        var message = form.querySelector('[name="message"]');
+        var valid = email && email.value.trim() && message && message.value.trim();
+        if (!valid) {
+          if (error) {
+            error.hidden = false;
+            error.classList.add("visible");
+          }
+          return;
+        }
+        if (error) {
+          error.hidden = true;
+          error.classList.remove("visible");
+        }
+        form.reset();
+      });
+    })();
+  </script>
 </body>
 </html>

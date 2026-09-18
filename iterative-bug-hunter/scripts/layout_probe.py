@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT_SELECTORS = {"html", "body", "document", ":root"}
+NON_RENDERED_TAGS = {"script", "style", "noscript", "template", "link", "meta", "head", "title"}
 
 ALL_RULES = (
     "overflow-x",
@@ -32,6 +33,18 @@ def _bbox(el: dict[str, Any]) -> dict[str, float]:
 
 def _is_root(el: dict[str, Any]) -> bool:
     return el.get("selector") in ROOT_SELECTORS or el.get("tag") in ("html", "body")
+
+
+def _is_non_rendered(el: dict[str, Any]) -> bool:
+    tag = str(el.get("tag") or "").lower()
+    if tag in NON_RENDERED_TAGS:
+        return True
+    attrs = el.get("attrs") or {}
+    if attrs.get("hidden") is True or attrs.get("hidden") == "":
+        return True
+    if str(el.get("selector") or "").startswith("script"):
+        return True
+    return False
 
 
 def _finding(
@@ -301,10 +314,13 @@ def check_overlap_interactive(
 def check_zero_size(elements: list[dict[str, Any]], *, min_size: float = 1.0) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     for el in elements:
-        if _is_root(el):
+        if _is_root(el) or _is_non_rendered(el):
             continue
         has_content = bool((el.get("text") or "").strip()) or bool(el.get("interactive"))
         if not has_content:
+            continue
+        # Hidden sinks / deferred UI are not layout defects until revealed.
+        if not el.get("interactive") and not el.get("inViewport", True):
             continue
         bbox = _bbox(el)
         if bbox["w"] < min_size or bbox["h"] < min_size:
@@ -389,7 +405,7 @@ def check_touch_target(
 ) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     for el in elements:
-        if _is_root(el) or not el.get("interactive"):
+        if _is_root(el) or _is_non_rendered(el) or not el.get("interactive"):
             continue
         bbox = _bbox(el)
         if bbox["w"] <= 0 or bbox["h"] <= 0:

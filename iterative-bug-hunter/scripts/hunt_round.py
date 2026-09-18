@@ -107,7 +107,15 @@ def probe_manifest_cells(
 
 def run_dynamic(cmd: str, *, root: Path) -> list[dict[str, Any]]:
     try:
-        proc = subprocess.run(cmd, shell=True, cwd=str(root), capture_output=True, text=True)
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
     except Exception as e:  # noqa: BLE001
         return [
             {

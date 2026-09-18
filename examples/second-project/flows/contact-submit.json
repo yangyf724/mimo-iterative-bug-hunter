@@ -13,6 +13,7 @@
       "target": "submitBtn",
       "pre": { "formValid": false },
       "post": {
+        "errorBanner.exists": true,
         "errorBanner.visible": true
       }
     }
