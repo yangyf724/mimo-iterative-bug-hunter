@@ -7,6 +7,11 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-18
+
+### 摘要
+工作区深度清理与 docs 收敛：删除运行时垃圾与已交付历史文档，源码仓只保留设计真源、skill 源码、验收记录与蓝图索引；SKILL frontmatter 合规整理。
+
 ### Changed
 - 工作区深度清理 — 删除运行时垃圾与 skill 重复副本、收敛历史 docs、`.gitignore` 增加 `.mimocode/` → 源码仓只保留真源与必要验收文档
 - `docs/BLUEPRINTS.md` — 新增研究蓝图压缩索引，替代已删 `docs/blueprint/*` 正文 → Fix 路由结论可查且不双真源
@@ -14,6 +19,9 @@ Versioning follows [SemVer](https://semver.org/).
 - `README.md` — 仓库定位列表与收敛后的 docs 树一致；增加项目简称 **MIBG**（Mimo Iterative Bug Hunter）→ 对话、文档与检索可用统一短名；仓库/skill 路径名不变
 - `iterative-bug-hunter/SKILL.md` — frontmatter `description` 压为单行、`compatibility` 挪到正文「运行环境」→ 符合 skill-creator 校验习惯
 - 删除 `docs/compose/spec/phase0`–`phase3`、`real-acceptance-install`、`skill-config-opt`、`hunt-fix-router` 与 `docs/blueprint/*` 正文 → 历史结论由 CHANGELOG / ACCEPTANCE / METRICS / BLUEPRINTS / skill references 承载
+
+### Added
+- `docs/compose/spec/workspace-cleanup.md` — 本次工作区清理 compose feature 文档 → 可追溯 AC、验证与 review 结论
 
 ## [1.0.0] - 2026-09-18
 
