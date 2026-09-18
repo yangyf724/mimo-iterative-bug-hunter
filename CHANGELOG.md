@@ -7,6 +7,24 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-09-18
+
+### 摘要
+深度 hunt-and-fix 验收 second-project：清掉 12 项已确认缺陷（代码/网页视觉/画布），并修复 skill 探针三类误报与编码问题；demo 与探针行为可在 quiet 收敛后稳定复测。
+
+### Changed
+- `examples/second-project/public/styles.css` — 响应式商品栅格、对比度、触控目标与表单布局修复 → 375px 不再横向溢出，交互区域达到 44px，文本对比度满足 WCAG
+- `examples/second-project/public/contact.html` — 增加 error sink（`data-testid=contact-error`）与提交校验脚本 → 空表单提交有可见反馈，ux-flow post 条件可满足
+- `examples/second-project/public/shop.html` — 心愿单死链改为 `/contact` → 避免 `href=#` 死端
+- `examples/second-project/canvas/promo.scene.json` — 导出尺寸对齐 1080x1920，对象移入 5% 安全区，资源像素/宽高比与显示一致 → canvas-safe/asset 规则不再命中
+- `examples/second-project/flows/contact-submit.json` — post 增加 `errorBanner.exists` → 静态采集与交互反馈均可判定
+
+### Fixed
+- `examples/second-project/src/checkout.js` — 优惠券改为 `amount * 0.9` → `npm test` 断言 100→90 通过
+- `iterative-bug-hunter/scripts/layout_probe.py` — `zero-size`/`touch-target` 跳过 script/style/hidden sink → 隐藏 UI 与非渲染节点不再误报
+- `iterative-bug-hunter/scripts/ux_flow.py` — feedback sink 的 `.visible` 在静态采集下按存在+文案判定 → 隐藏 error banner 不再误判 flow 失败
+- `iterative-bug-hunter/scripts/hunt_round.py` — `run_dynamic` 使用 UTF-8 + `errors=replace` → 中文测试输出不再因 GBK 解码崩溃
+
 ## [1.0.1] - 2026-09-18
 
 ### 摘要

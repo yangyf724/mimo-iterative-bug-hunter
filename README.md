@@ -5,7 +5,7 @@
 全模态迭代抓 BUG 的 MiMoCode skill 源码仓：代码通道 + Web 视觉通道 + 画布通道，指纹去重、跨模态确认、quiet 四条件收敛。
 
 <!-- github-sync:begin -->
-**Version:** 1.0.1  
+**Version:** 1.0.2  
 **Last sync:** 2026-09-18
 <!-- github-sync:end -->
 
