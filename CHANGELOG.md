@@ -7,6 +7,19 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-18
+
+### 摘要
+真机验收：skill 安装到本机 MiMoCode 路径；在 `examples/second-project` 上完成 hunt（fixture 降级路径），METRICS/ACCEPTANCE 补观测记录。
+
+### Added
+- `docs/compose/spec/real-acceptance-install.md` — 真机验收 feature 文档与结论 → 可追溯安装/hunt 过程
+- `examples/second-project/run_acceptance_hunt.py` — 验收用 fixture 采集 + hunt_round 入口 → 无 Playwright 时可复现 second-project 扫描
+
+### Changed
+- `docs/ACCEPTANCE.md` — 增「真机验收」勾选表 → 安装与 hunt 命中可查
+- `docs/METRICS.md` — second-project 观测行（13 类 rule，backend=fixture）→ 度量落点
+
 ## [0.4.0] - 2026-09-17
 
 ### 摘要
