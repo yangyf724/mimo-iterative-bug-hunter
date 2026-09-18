@@ -89,6 +89,19 @@ npm start
 | `canvas/promo.scene.json` 安全区 + 导出尺寸 | `safe-area-violation` / `export-mismatch` |
 | `flows/contact-submit.json` | `ux-flow-step` |
 
+## 真机验收（Skill 安装 + second-project hunt）
+
+| # | 检查项 | 通过标准 | 状态 |
+|---|--------|----------|------|
+| 1 | Skill 安装 | 复制到 `~/.config/mimocode/skills/iterative-bug-hunter/`，含 SKILL.md/scripts/references/locales | **PASS** — UTF-8 校验通过 |
+| 2 | 服务可达 | `node server.js` @ `http://127.0.0.1:5174` 返回 200 | **PASS** |
+| 3 | init + discover | state routes 含 `/shop` `/contact` | **PASS** — package.json + live HTML |
+| 4 | hunt 命中 | summary `by_rule` 含期望中 ≥3 类 | **PASS** — overflow-x / dead-link / missing-feedback / touch-target / contrast-text / ux-flow-step / safe-area-violation / export-mismatch / dynamic-fail 等 13 类 |
+| 5 | export | `export_report.py` schema v1 ok | **PASS** |
+| 6 | Blind Spots | 无 Playwright 时明确 backend=fixture，不假装浏览器采集 | **PASS** — MANIFEST.backend=`fixture-from-html-css` |
+
+说明：`hunt_round` 不写 Confirmed（由 agent 按 confirm-protocol 确认）；run-1 `quiet_streak=1` 表示机器条件满足但尚未做人工 Confirm 轮。
+
 ## 本地验收脚本（agent 执行）
 
 1. `& $env:MIMO_PYTHON -m unittest discover -s tests -v`
