@@ -1,10 +1,27 @@
-/* Northwind second-project styles — intentional defects marked in HTML */
+/* Northwind second-project styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
   padding: 0 16px 40px;
   color: #1f2937;
   background: #fff;
+}
+
+main {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .site-header {
@@ -17,18 +34,28 @@ body {
 
 .site-header nav {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
+.site-header nav a,
 .logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
   font-weight: 700;
   text-decoration: none;
   color: inherit;
 }
 
 .btn {
-  display: inline-block;
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
   background: #0f766e;
   color: #fff;
   text-decoration: none;
@@ -36,45 +63,90 @@ body {
   border: 0;
 }
 
-/* INTENTIONAL: wide fixed grid causes overflow-x at 375px */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(3, 280px);
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 12px;
-  min-width: 900px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .product-card {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
-/* INTENTIONAL: low contrast helper text */
+.product-card a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 4px;
+}
+
 .helper-note {
-  color: #b0b7bf;
+  color: #4b5563;
   font-size: 13px;
 }
 
-/* INTENTIONAL: touch target below 44px */
 .icon-tiny {
-  width: 20px;
-  height: 20px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid #9ca3af;
   background: #f9fafb;
   line-height: 1;
-  font-size: 12px;
+  font-size: 16px;
+}
+
+form {
+  max-width: 100%;
 }
 
 form label {
   display: block;
   margin-bottom: 12px;
+  max-width: 100%;
 }
 
 form input,
 form textarea {
   display: block;
-  width: min(100%, 420px);
+  width: 100%;
+  max-width: min(100%, 420px);
+  min-height: 44px;
   margin-top: 4px;
+}
+
+form button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.form-error {
+  display: none;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  max-width: min(100%, 420px);
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.form-error.visible {
+  display: block;
 }
