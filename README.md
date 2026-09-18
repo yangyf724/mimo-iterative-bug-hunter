@@ -1,5 +1,7 @@
 # Mimo Iterative Bug Hunter
 
+**简称：** MIBG（Mimo Iterative Bug Hunter）— 对话与文档中可用 MIBG 指代本项目。
+
 全模态迭代抓 BUG 的 MiMoCode skill 源码仓：代码通道 + Web 视觉通道 + 画布通道，指纹去重、跨模态确认、quiet 四条件收敛。
 
 <!-- github-sync:begin -->

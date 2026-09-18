@@ -7,6 +7,9 @@ Versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- `README.md` — 增加项目简称 **MIBG**（Mimo Iterative Bug Hunter）→ 对话、文档与检索可用统一短名；仓库/skill 路径名不变
+
 ## [1.0.0] - 2026-09-18
 
 ### 摘要
