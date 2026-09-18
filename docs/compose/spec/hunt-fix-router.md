@@ -2,8 +2,8 @@
 feature: hunt-fix-router
 status: delivered
 updated: 2026-09-18
-branch: main  # workspace override: git worktree add blocked in isolated session
-commits: pending
+branch: feat/hunt-fix-router
+commits: 2b705c0..3b07747
 ---
 
 # Hunt Fix Router (compose-escalate v2)
@@ -55,7 +55,7 @@ commits: pending
 
 ### Workspace override
 
-环境拒绝 `git worktree add`（isolated child session / 共享 ref store）。实现落在**主 checkout** 文件上；不嵌套 worktree。分支 `feat/hunt-fix-router` 与提交由用户在主 checkout 完成，或后续会话在可写环境创建。Spec 中 `branch`/`commits` 据实记录。
+环境拒绝 `git worktree add`（isolated child session / 共享 ref store）。实现落在**主 checkout** 文件上；不嵌套 worktree。后续已在主 checkout 创建分支 `feat/hunt-fix-router` 并提交（见 frontmatter `commits`）。Workspace override 仍适用：未使用独立 worktree。
 
 ### 准据
 
