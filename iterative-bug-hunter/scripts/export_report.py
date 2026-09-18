@@ -60,7 +60,8 @@ def iter_bug_files(bh: Path) -> list[Path]:
 def slim_bug(bug: dict[str, Any], status_dir: str) -> dict[str, Any]:
     loc = bug.get("location") or {}
     evidence = bug.get("evidence") or {}
-    return {
+    attempts = bug.get("fix_attempts") or {}
+    slim: dict[str, Any] = {
         "id": bug.get("id"),
         "status": bug.get("status") or status_dir,
         "modality": bug.get("modality"),
@@ -77,6 +78,19 @@ def slim_bug(bug: dict[str, Any], status_dir: str) -> dict[str, Any]:
             "selector": loc.get("selector"),
         },
     }
+    if bug.get("fix_route") is not None:
+        slim["fix_route"] = bug.get("fix_route")
+    if bug.get("fix_reason_codes") is not None:
+        slim["fix_reason_codes"] = bug.get("fix_reason_codes")
+    if attempts:
+        slim["fix_attempts"] = {
+            "local": attempts.get("local", 0),
+            "lite": attempts.get("lite", 0),
+            "diminishing": bool(attempts.get("diminishing", False)),
+        }
+    if bug.get("packet_path") is not None:
+        slim["packet_path"] = bug.get("packet_path")
+    return slim
 
 
 def collect_runs(bh: Path) -> list[dict[str, Any]]:
@@ -196,6 +210,8 @@ def build_export(root: Path) -> dict[str, Any]:
         "fp_patterns": fp_patterns,
         "report_md_path": "REPORT.md",
         "notes": [],
+        "budget": state.get("budget") or {},
+        "fix_router": state.get("fix_router") or {},
     }
 
 

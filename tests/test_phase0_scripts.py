@@ -24,6 +24,27 @@ class TestInitState(unittest.TestCase):
             self.assertTrue((root / ".bug-hunter" / "bugs" / "confirmed").is_dir())
             self.assertEqual(state["surfaces"]["web"]["routes"], ["/", "/about"])
             self.assertEqual(state["convergence"]["required_quiet_streak"], 2)
+            budget = state["budget"]
+            self.assertEqual(budget["max_local_attempts"], 3)
+            self.assertEqual(budget["lite_max_attempts"], 2)
+            self.assertEqual(budget["max_compose_escalations"], 2)
+            self.assertEqual(budget["max_local_edit_sites"], 3)
+            self.assertEqual(budget["max_lite_edit_sites"], 6)
+            router = state["fix_router"]
+            self.assertTrue(router["enabled"])
+            self.assertEqual(router["escalations_used"], 0)
+            self.assertEqual(router["max_compose_escalations"], 2)
+            self.assertEqual(router["by_route"]["local"], 0)
+            self.assertEqual(router["by_route"]["compose"], 0)
+
+    def test_resume_summary_includes_fix_router_budget(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            init_mod.init_state(root)
+            summary = init_mod.resume_summary(root)
+            self.assertTrue(summary["ok"])
+            self.assertIn("max_local_attempts", summary["budget"])
+            self.assertEqual(summary["fix_router"]["enabled"], True)
 
     def test_refuses_overwrite_without_force(self):
         with tempfile.TemporaryDirectory() as td:

@@ -77,6 +77,22 @@ DEFAULT_STATE: dict[str, Any] = {
         "max_fix_failures": 5,
         "max_fixes_per_run": 5,
         "min_severity_for_fix": "medium",
+        "max_local_attempts": 3,
+        "lite_max_attempts": 2,
+        "max_compose_escalations": 2,
+        "max_local_edit_sites": 3,
+        "max_lite_edit_sites": 6,
+    },
+    "fix_router": {
+        "enabled": True,
+        "escalations_used": 0,
+        "max_compose_escalations": 2,
+        "by_route": {
+            "local": 0,
+            "lite": 0,
+            "compose": 0,
+            "deferred": 0,
+        },
     },
     "convergence": {
         "quiet_streak": 0,
@@ -288,6 +304,8 @@ def resume_summary(root: Path) -> dict[str, Any]:
         "modalities_enabled": state.get("modalities_enabled", []),
         "last_strategy_set": state.get("last_strategy_set", []),
         "mode": state.get("mode"),
+        "budget": state.get("budget") or {},
+        "fix_router": state.get("fix_router") or {},
     }
 
 

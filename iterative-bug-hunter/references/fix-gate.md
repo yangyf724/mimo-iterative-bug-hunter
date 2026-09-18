@@ -13,7 +13,7 @@
 Phase 3：像素基线完整性可用 [`ci-gate.md`](ci-gate.md) 的 `baseline_lock.py verify`；有意变更仍走 `visual_diff.py approve`（approvals 必须带与当前文件一致的 `sha256`）。
 | `unit_green` | 若提供 `--test-cmd` 则 exit 0 |
 
-4. 失败 → agent 回滚（`git checkout` 等），记 `fix-failed`；同一 bug 失败 ≥ `max_fix_failures` → Deferred。
+4. 失败 → agent 回滚（`git checkout` 等），记 `fix-failed`；更新 `fix_attempts`。分流见 [`compose-escalate.md`](compose-escalate.md)：未超 `max_local_attempts`/`lite_max_attempts` 时可换策略重试或转 `lite`（仍须过本门）；命中 oracle gap / 契约重定义 / `user_pr` 且 `escalations_used < max_compose_escalations` 时门控升 `compose`；否则同一 bug 失败 ≥ `max_fix_failures` → Deferred。**禁止同构重试**（失败 ≥2 次必须重定位/换策略/升档/Deferred）。
 
 ## 用法
 
@@ -40,6 +40,10 @@ Phase 3：像素基线完整性可用 [`ci-gate.md`](ci-gate.md) 的 `baseline_l
 
 1. `visual_diff.py approve --route … --viewport … --reason "..."`（写 `baselines/approvals.jsonl` 并更新基线）；或
 2. 提供 `--fix-verify` JSON，含 `"intentional_visual_change": true` 与 `intentional_cells: ["/about@375x812"]`。
+
+## 路由（Local / Lite / Compose）
+
+本文件只定义 **Local/Lite 的机器门禁**。档位选择、bug packet、compose 升格与回 hunt 协议见 [`compose-escalate.md`](compose-escalate.md)。`fix_gate.py` 检查语义在所有档位**不降级**。
 
 ## 脚本不做的事
 

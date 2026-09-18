@@ -63,7 +63,7 @@ compatibility: Python 3.10+ for bundled scripts; Playwright or playwright-mcp fo
 6. **Hunt** — `scripts/hunt_round.py`：probe 矩阵 → layout+contrast+ux → 可选 canvas/flows → FP 白名单 suppress → 指纹注册 → summary。UX flows 见 [`references/ux-flow.md`](references/ux-flow.md)；画布探针见 [`references/canvas-protocol.md`](references/canvas-protocol.md)。或逐步手动跑 `layout_probe.py` / `contrast_probe.py` / `ux_flow.py` / `canvas_probe.py`。
 7. **VLM（可选）** — 双视角审图后 `vlm_audit.py merge`，仅 Candidate；见 [`references/vlm-audit.md`](references/vlm-audit.md)。
 8. **Confirm** — 按 [`references/confirm-protocol.md`](references/confirm-protocol.md)，L3/L4 才 Confirmed；rejected 可 `fp_feedback.py absorb` 沉淀。
-9. **Fix（可选）** — 仅 Confirmed；`scripts/fix_gate.py` 判门，见 [`references/fix-gate.md`](references/fix-gate.md)。
+9. **Fix（可选）** — 仅 Confirmed；先按 [`references/compose-escalate.md`](references/compose-escalate.md) 做**三档路由**（`local` / `lite` / `compose`），再以 [`references/fix-gate.md`](references/fix-gate.md) 的 `scripts/fix_gate.py` 判门。默认 Local；Lite 重定位仍走 fix_gate；仅 oracle gap / 契约重定义 / 用户明确要 PR·Spec 时门控升 compose-next（slim），结束后必须回 hunt Converge。预算：`budget.max_local_attempts` / `lite_max_attempts` / `max_compose_escalations`；禁止同构重试。
 10. **Converge** — `scripts/converge_check.py` 实现 quiet 四条件。
 11. **Report** — 按 [`references/report-template.md`](references/report-template.md) 写 `.bug-hunter/REPORT.md`；机器视图 `scripts/export_report.py`，字段见 [`references/export-schema.md`](references/export-schema.md)。
 12. **CI（可选）** — `scripts/ci_gate.py` / baseline lock / axe gate，见 [`references/ci-gate.md`](references/ci-gate.md)。
@@ -97,6 +97,8 @@ compatibility: Python 3.10+ for bundled scripts; Playwright or playwright-mcp fo
    → modalities 含 web-visual → 优先 axe/contrast 策略 → L3 证据门槛 → 连续 K 轮 quiet 后停。
 3. User: 「design QA，海报导出尺寸好像不对，还有些按钮被裁切」  
    → 有 canvas items / 页面 UI → L2–L4 → canvas + layout 交叉确认 → 机器数值为准。
+4. User: 「修到没有，复杂的 UI 问题该开 compose 吗？」  
+   → Confirm 后按 [`compose-escalate.md`](references/compose-escalate.md) 三档路由：默认 local；lite 重定位；仅 oracle gap / 契约 / user_pr 门控升 compose，结束后回 hunt Converge。
 
 **不应触发（负例）**
 
@@ -132,7 +134,8 @@ compatibility: Python 3.10+ for bundled scripts; Playwright or playwright-mcp fo
 | axe 结果 `unavailable` | axe-core 未接入 | 保持 L2 策略；**禁止**把 unavailable 当通过；REPORT 记 Blind Spots |
 | 写 state 抢锁失败 | 另一会话/进程持锁 | 重试 ≤3 次后中止本轮；禁止双会话同时 hunt 同一项目 |
 | quiet 已 ≥K 但仍感觉有问题 | 策略未覆盖某 modality / 只扫了单 route | 检查 quiet 四条件是否真满足；补 route×viewport 或 modalities 后再跑 |
-| 修复后再现同一 BUG | Fix 未过门或回归失败 | 仅修 Confirmed；`fix_gate.py` 拒绝则不写代码；失败计入护栏 |
+| 修复后再现同一 BUG | Fix 未过门或回归失败 | 仅修 Confirmed；`fix_gate.py` 拒绝则不写代码；失败计入护栏；按 [`compose-escalate.md`](references/compose-escalate.md) 换策略/转 lite/升 compose 或 Deferred，禁止同构重试 |
+| 不知道该小修还是开 compose | 缺三档判据 | 读 [`compose-escalate.md`](references/compose-escalate.md)：oracle 可判定且编辑点小 → local；需重定位 → lite；oracle gap / 契约重定义 / user_pr → 门控 compose |
 
 ## 禁止
 

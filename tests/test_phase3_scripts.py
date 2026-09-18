@@ -248,6 +248,10 @@ class TestExportReport(unittest.TestCase):
                         "rule_id": "overflow-x",
                         "title": "overflow",
                         "location": {"route": "/", "viewport": "375x812"},
+                        "fix_route": "local",
+                        "fix_reason_codes": ["oracle_ok"],
+                        "fix_attempts": {"local": 1, "lite": 0, "diminishing": False},
+                        "packet_path": ".bug-hunter/bugs/bug-1/packet.json",
                     }
                 ),
                 encoding="utf-8",
@@ -276,6 +280,13 @@ class TestExportReport(unittest.TestCase):
             self.assertEqual(data["counts"]["confirmed"], 1)
             self.assertEqual(data["counts"]["suppressed"], 2)
             self.assertEqual(data["convergence"]["required_quiet_streak"], 2)
+            self.assertIn("fix_router", data)
+            self.assertIn("budget", data)
+            bug = data["bugs"][0]
+            self.assertEqual(bug["fix_route"], "local")
+            self.assertEqual(bug["fix_reason_codes"], ["oracle_ok"])
+            self.assertFalse(bug["fix_attempts"]["diminishing"])
+            self.assertEqual(bug["packet_path"], ".bug-hunter/bugs/bug-1/packet.json")
 
     def test_validate_rejects_missing(self):
         errors = export_report.validate_export({"schema_version": 1})

@@ -40,6 +40,20 @@
 ## 已修复与回归（Fixed）
 
 - none | list + whether baselines updated
+- 每条可附：`fix_route`（local/lite/compose）、`fix_reason_codes`、是否 `diminishing`
+
+## 修复路由（Fix Router）
+
+| route | count |
+|-------|------:|
+| local | |
+| lite | |
+| compose | |
+| deferred_from_fix | |
+
+- Compose 升格：`escalations_used` / `max_compose_escalations`；packet 路径；是否已回 hunt 复测（未复测必须写 Blind Spots）
+- Budget：`max_local_attempts` / `lite_max_attempts`；同构重试是否出现
+- 拒绝升格 / 用户否决：仍列出对应 Confirmed
 
 ## 拒绝样本（Rejected）
 

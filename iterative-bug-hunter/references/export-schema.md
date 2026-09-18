@@ -21,10 +21,21 @@ Default path: `.bug-hunter/export/report.json`
 | `runs` | array | yes |
 | `fp_patterns` | `{count, ids}` | no |
 | `report_md_path` | string | no |
+| `budget` | object（来自 `state.budget`，含 fix 路由预算字段） | no |
+| `fix_router` | `{enabled, escalations_used, max_compose_escalations, by_route}` | no |
 
 `scope` requires `modalities_enabled`, `routes`, `viewports`.
 `counts` requires `confirmed`, `rejected`, `fixed`, `deferred`, `findings_total`.
 `convergence` requires `run_count`, `quiet_streak`, `required_quiet_streak`, `converged`.
+
+### Bug 对象可选字段（fix router）
+
+| Field | Type | When |
+|-------|------|------|
+| `fix_route` | `local` \| `lite` \| `compose` | 已做修复路由判定 |
+| `fix_reason_codes` | string[] | 与 route 一并记录 |
+| `fix_attempts` | `{local, lite, diminishing}` | 有修复尝试时 |
+| `packet_path` | string | 已写 bug packet |
 
 ## CLI
 
