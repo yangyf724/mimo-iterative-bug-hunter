@@ -19,4 +19,4 @@
 | 日期 | 项目 | runs | confirmed (code/wv) | rejected | duplicate_rate | 备注 |
 |------|------|-----:|---------------------|----------|----------------|------|
 | | | | | | | |
-| 2026-09-17 | examples/second-project | — | — | — | — | Phase 3 第二验收项目就绪；待真浏览器 hunt 后填观测值 |
+| 2026-09-18 | examples/second-project | 1 (fixture) | 0/0（hunt 不自动 Confirm） | 0 | 0.05 | L4；new=18；rule 命中 overflow-x/dead-link/missing-feedback/touch-target/contrast-text/ux-flow-step/safe-area/export-mismatch/low-res/aspect/dynamic-fail；backend=fixture-from-html-css（无 Playwright） |
